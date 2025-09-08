@@ -1,20 +1,27 @@
-import React from 'react'
-import { Routes, Route, Navigate } from "react-router-dom"; // Remove BrowserRouter from here
+// App.jsx
+import React from 'react';
+import { Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
 import AdmnDashboard from "./pages/AdmnDashboard";
 import Register from "./pages/Register";
+import PrivateRoutes from './utils/PrivateRoutes';
+import RoleBaseRoutes from './utils/RoleBaseRoutes';
 
 function App() {
   return (
-    // Remove <BrowserRouter> from here - it's already in main.jsx
     <Routes>
       <Route path="/" element={<Navigate to="/admn-dashboard" />} />
       <Route path="/login" element={<Login />} />
-      <Route path="/admn-dashboard" element={<AdmnDashboard />} />
+      <Route path="/admn-dashboard" element={
+        <PrivateRoutes>
+          <RoleBaseRoutes requiredRole={["admin"]}>
+            <AdmnDashboard />
+          </RoleBaseRoutes>
+        </PrivateRoutes>
+      } />
       <Route path="/register" element={<Register />} />
-      {/* Remove duplicate login route */}
+      <Route path="/unauthorized" element={<div>Unauthorized - You don't have permission to access this page</div>} />
     </Routes>
-    // Remove </BrowserRouter> from here
   );
 }
 

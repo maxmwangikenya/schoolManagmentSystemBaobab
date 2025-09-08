@@ -1,155 +1,58 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
-import axios from 'axios';
+// src/context/auth.jsx
+import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-// Create the context
+// Initial State
+const initialState = {
+    user: null,
+    isAuthenticated: false,
+    isLoading: true, // true until we check localStorage
+};
+
+// Action Types
+const LOGIN_SUCCESS = 'LOGIN_SUCCESS';
+const LOGIN_FAILURE = 'LOGIN_FAILURE';
+const LOGOUT = 'LOGOUT';
+const CHECK_AUTH = 'CHECK_AUTH';
+
+// Reducer
+const authReducer = (state, action) => {
+    switch (action.type) {
+        case LOGIN_SUCCESS:
+            return {
+                ...state,
+                user: action.payload.user,
+                isAuthenticated: true,
+                isLoading: false,
+            };
+        case LOGIN_FAILURE:
+            return {
+                ...state,
+                user: null,
+                isAuthenticated: false,
+                isLoading: false,
+            };
+        case LOGOUT:
+            return {
+                ...state,
+                user: null,
+                isAuthenticated: false,
+                isLoading: false,
+            };
+        case CHECK_AUTH:
+            return {
+                ...state,
+                isLoading: false,
+            };
+        default:
+            return state;
+    }
+};
+
+// Create Context
 const AuthContext = createContext();
 
-// Auth Provider component
-export function AuthProvider({ children }) {
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const navigate = useNavigate();
-
-    // Set axios base URL and default headers
-    axios.defaults.baseURL = 'http://localhost:3000/api';
-
-    // Check for existing session on mount - FIXED
-    useEffect(() => {
-        const checkAuthStatus = async () => {
-            const token = localStorage.getItem('authToken');
-            const savedUser = localStorage.getItem('user');
-            
-            if (token && savedUser) {
-                try {
-                    const userData = JSON.parse(savedUser);
-                    setUser(userData);
-                    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-                } catch (error) {
-                    console.error('Error parsing saved user:', error);
-                    localStorage.removeItem('authToken');
-                    localStorage.removeItem('user');
-                }
-            }
-            setLoading(false);
-        };
-
-        checkAuthStatus();
-    }, []);
-
-    // Email verification function
-    const verifyEmailExists = async (email) => {
-        try {
-            const response = await axios.post('/auth/check-email', { email });
-            return response.data;
-        } catch (error) {
-            console.error('Email verification error:', error);
-            return { exists: false, error: 'Email check failed' };
-        }
-    };
-
-    // Login function
-    const login = async (email, password) => {
-        try {
-            const response = await axios.post('/auth/login', { email, password });
-            
-            if (response.data.success) {
-                const { token, user } = response.data;
-                
-                localStorage.setItem('authToken', token);
-                localStorage.setItem('user', JSON.stringify(user));
-                setUser(user);
-                
-                axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-                
-                if (user.role === 'admin') {
-                    navigate('/admin-dashboard');
-                } else if (user.role === 'employee') {
-                    navigate('/employee-dashboard');
-                } else {
-                    navigate('/dashboard');
-                }
-                
-                return { success: true };
-            }
-        } catch (error) {
-            let errorMessage = 'Login failed. Please check your credentials.';
-            if (error.response?.data?.error) {
-                errorMessage = error.response.data.error;
-            }
-            return { success: false, error: errorMessage };
-        }
-    };
-
-    // Register function
-    const register = async (userData) => {
-        try {
-            const response = await axios.post('/auth/register', userData);
-            
-            if (response.data.success) {
-                const { token, user } = response.data;
-                
-                localStorage.setItem('authToken', token);
-                localStorage.setItem('user', JSON.stringify(user));
-                setUser(user);
-                
-                axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-                
-                if (user.role === 'admin') {
-                    navigate('/admin-dashboard');
-                } else if (user.role === 'employee') {
-                    navigate('/employee-dashboard');
-                } else {
-                    navigate('/dashboard');
-                }
-                
-                return { success: true };
-            }
-        } catch (error) {
-            let errorMessage = 'Registration failed';
-            if (error.response?.data?.error) {
-                errorMessage = error.response.data.error;
-            }
-            return { success: false, error: errorMessage };
-        }
-    };
-
-    // Logout function
-    const logout = () => {
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('user');
-        delete axios.defaults.headers.common['Authorization'];
-        setUser(null);
-        navigate('/login');
-    };
-
-    // Update user function
-    const updateUser = (updatedUser) => {
-        setUser(updatedUser);
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-    };
-
-    // Context value
-    const value = {
-        user,
-        login,
-        register,
-        logout,
-        updateUser,
-        loading,
-        isAuthenticated: !!user,
-        verifyEmailExists,
-        userRole: user?.role
-    };
-
-    return (
-        <AuthContext.Provider value={value}>
-            {children} {/* ✅ REMOVED: !loading && */}
-        </AuthContext.Provider>
-    );
-}
-
-// Custom hook to use auth context
+// Custom Hook (named export)
 export const useAuth = () => {
     const context = useContext(AuthContext);
     if (!context) {
@@ -158,4 +61,92 @@ export const useAuth = () => {
     return context;
 };
 
+// Provider Component
+const AuthProvider = ({ children }) => {
+    const [state, dispatch] = useReducer(authReducer, initialState);
+    const navigate = useNavigate();
+
+    // Check localStorage on initial load
+    useEffect(() => {
+        const user = localStorage.getItem('user');
+        if (user) {
+            try {
+                dispatch({
+                    type: LOGIN_SUCCESS,
+                    payload: { user: JSON.parse(user) },
+                });
+            } catch (e) {
+                console.error('Failed to parse user from localStorage', e);
+                localStorage.removeItem('user');
+                dispatch({ type: CHECK_AUTH });
+            }
+        } else {
+            dispatch({ type: CHECK_AUTH });
+        }
+    }, []);
+
+    // Login function — replace with real API call
+    const login = async (email, password) => {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Mock credentials
+        if (email === 'admin@example.com' && password === 'admin') {
+            const mockUser = {
+                id: 1,
+                email,
+                name: 'Admin User',
+                role: 'admin',
+            };
+
+            localStorage.setItem('user', JSON.stringify(mockUser));
+            dispatch({
+                type: LOGIN_SUCCESS,
+                payload: { user: mockUser },
+            });
+
+            navigate('/admn-dashboard');
+            return { success: true };
+        } else if (email === 'employee@example.com' && password === 'password123') {
+            const mockUser = {
+                id: 2,
+                email,
+                name: 'Employee User',
+                role: 'employee',
+            };
+
+            localStorage.setItem('user', JSON.stringify(mockUser));
+            dispatch({
+                type: LOGIN_SUCCESS,
+                payload: { user: mockUser },
+            });
+
+            navigate('/employee-dashboard');
+            return { success: true };
+        } else {
+            dispatch({ type: LOGIN_FAILURE });
+            return { success: false, error: 'Invalid email or password' };
+        }
+    };
+
+    // Logout function
+    const logout = () => {
+        localStorage.removeItem('user');
+        dispatch({ type: LOGOUT });
+        navigate('/login');
+    };
+
+    const value = {
+        ...state,
+        login,
+        logout,
+    };
+
+    return (
+        <AuthContext.Provider value={value}>
+            {children}
+        </AuthContext.Provider>
+    );
+};
+
+// ✅ DEFAULT EXPORT — so you can do: import AuthProvider from './context/auth'
 export default AuthProvider;

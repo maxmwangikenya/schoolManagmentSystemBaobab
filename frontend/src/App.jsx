@@ -10,7 +10,6 @@ import RoleBaseRoutes from './utils/RoleBaseRoutes';
 function App() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/admn-dashboard" />} />
       <Route path="/login" element={<Login />} />
       <Route path="/admn-dashboard" element={
         <PrivateRoutes>

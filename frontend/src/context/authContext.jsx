@@ -1,4 +1,4 @@
-// src/context/auth.jsx
+// src/context/authContext.jsx
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -12,6 +12,8 @@ const initialState = {
 // Action Types
 const LOGIN_SUCCESS = 'LOGIN_SUCCESS';
 const LOGIN_FAILURE = 'LOGIN_FAILURE';
+const REGISTER_SUCCESS = 'REGISTER_SUCCESS';
+const REGISTER_FAILURE = 'REGISTER_FAILURE';
 const LOGOUT = 'LOGOUT';
 const CHECK_AUTH = 'CHECK_AUTH';
 
@@ -19,6 +21,7 @@ const CHECK_AUTH = 'CHECK_AUTH';
 const authReducer = (state, action) => {
     switch (action.type) {
         case LOGIN_SUCCESS:
+        case REGISTER_SUCCESS:
             return {
                 ...state,
                 user: action.payload.user,
@@ -26,6 +29,7 @@ const authReducer = (state, action) => {
                 isLoading: false,
             };
         case LOGIN_FAILURE:
+        case REGISTER_FAILURE:
             return {
                 ...state,
                 user: null,
@@ -128,6 +132,58 @@ const AuthProvider = ({ children }) => {
         }
     };
 
+    // Register function — replace with real API call
+    const register = async (userData) => {
+        try {
+            // Simulate API delay
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            // Mock registration logic
+            // In a real app, you'd send this data to your backend API
+            const { email, password, name, role = 'employee' } = userData;
+
+            // Basic validation
+            if (!email || !password || !name) {
+                dispatch({ type: REGISTER_FAILURE });
+                return { success: false, error: 'All fields are required' };
+            }
+
+            // Check if user already exists (mock check)
+            const existingUsers = ['admin@example.com', 'employee@example.com'];
+            if (existingUsers.includes(email)) {
+                dispatch({ type: REGISTER_FAILURE });
+                return { success: false, error: 'User already exists' };
+            }
+
+            // Create new user
+            const newUser = {
+                id: Date.now(), // Mock ID generation
+                email,
+                name,
+                role,
+            };
+
+            // Store user data
+            localStorage.setItem('user', JSON.stringify(newUser));
+            dispatch({
+                type: REGISTER_SUCCESS,
+                payload: { user: newUser },
+            });
+
+            // Navigate based on role
+            if (role === 'admin') {
+                navigate('/admn-dashboard');
+            } else {
+                navigate('/employee-dashboard');
+            }
+
+            return { success: true, user: newUser };
+        } catch (error) {
+            dispatch({ type: REGISTER_FAILURE });
+            return { success: false, error: 'Registration failed. Please try again.' };
+        }
+    };
+
     // Logout function
     const logout = () => {
         localStorage.removeItem('user');
@@ -137,7 +193,11 @@ const AuthProvider = ({ children }) => {
 
     const value = {
         ...state,
+        user: state.user,
+        isAuthenticated: state.isAuthenticated,
+        loading: state.isLoading, // Also provide as 'loading' for compatibility
         login,
+        register, // Add register function to context value
         logout,
     };
 
@@ -148,5 +208,5 @@ const AuthProvider = ({ children }) => {
     );
 };
 
-// ✅ DEFAULT EXPORT — so you can do: import AuthProvider from './context/auth'
+// Default export
 export default AuthProvider;

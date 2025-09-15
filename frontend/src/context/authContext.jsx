@@ -108,7 +108,7 @@ const AuthProvider = ({ children }) => {
                 payload: { user: mockUser },
             });
 
-            navigate('/admn-dashboard');
+            navigate('/adimn-dashboard');
             return { success: true };
         } else if (email === 'employee@example.com' && password === 'password123') {
             const mockUser = {
@@ -172,7 +172,7 @@ const AuthProvider = ({ children }) => {
 
             // Navigate based on role
             if (role === 'admin') {
-                navigate('/admn-dashboard');
+                navigate('/admin-dashboard');
             } else {
                 navigate('/employee-dashboard');
             }

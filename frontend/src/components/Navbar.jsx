@@ -7,12 +7,20 @@ const Navbar = () => {
 
   return (
     <div className="w-full flex items-center justify-between h-16 bg-gradient-to-r from-teal-600 to-teal-700 px-6 text-white shadow-lg">
-      {/* Welcome Section */}
-      <div className="flex items-center gap-3">
-        <FaUserCircle className="text-2xl text-teal-200" />
-        <div>
-          <p className="text-sm font-medium">Welcome back,</p>
-          <p className="text-lg font-semibold">{user?.name || 'Guest'}</p>
+      {/* Left Section - Logo/Brand */}
+      <div className="flex items-center gap-6">
+        <div className="flex items-center gap-3">
+          <div className="bg-white/10 p-2 rounded-lg">
+
+          </div>
+          <div className="hidden md:block w-px h-8 bg-teal-400/30"></div>
+          <div className="hidden md:flex items-center gap-2">
+            <FaUserCircle className="text-lg text-teal-200" />
+            <div>
+              <p className="text-sm font-medium">Welcome back,</p>
+              <p className="text-base font-semibold">{user?.name || 'Guest'}</p>
+            </div>
+          </div>
         </div>
       </div>
 

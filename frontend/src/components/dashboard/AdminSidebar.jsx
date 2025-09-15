@@ -13,7 +13,7 @@ import {
 
 const AdminSidebar = () => {
   const menuItems = [
-    { to: '/admn-dashboard', icon: FaTachometerAlt, label: 'Dashboard' },
+    { to: '/admin-dashboard', icon: FaTachometerAlt, label: 'Dashboard' },
     { to: '/employees', icon: FaUsers, label: 'Employees' },
     { to: '/departments', icon: FaBuilding, label: 'Departments' },
     { to: '/leaves', icon: FaFileAlt, label: 'Leave Management' },

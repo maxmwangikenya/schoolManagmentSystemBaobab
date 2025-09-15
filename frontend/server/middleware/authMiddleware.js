@@ -84,3 +84,4 @@ const requireRole = (roles) => {
 };
 
 export { verifyUser, requireRole };
+export default verifyUser;

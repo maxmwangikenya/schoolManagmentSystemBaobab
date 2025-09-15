@@ -3,6 +3,7 @@ import express from 'express'
 import cors from 'cors'
 import authRouter from './routes/auth.js'
 import connectToDatabase from './db/db.js'
+import departmentRouter from './routes/department.js'
 
 // Connect to database
 connectToDatabase()
@@ -15,6 +16,7 @@ app.use(express.json())
 
 // Routes
 app.use('/api/auth', authRouter)
+app.use('/api/department', departmentRouter)
 
 // Basic health check route
 app.get('/', (req, res) => {

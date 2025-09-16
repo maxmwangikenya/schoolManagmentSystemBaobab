@@ -15,7 +15,7 @@ const AdminSidebar = () => {
   const menuItems = [
     { to: '/admin-dashboard', icon: FaTachometerAlt, label: 'Dashboard' },
     { to: '/employees', icon: FaUsers, label: 'Employees' },
-    { to: '/departments', icon: FaBuilding, label: 'Departments' },
+    { to: '/admin-dashboard/departments', icon: FaBuilding, label: 'Departments' },
     { to: '/leaves', icon: FaFileAlt, label: 'Leave Management' },
     { to: '/salary', icon: FaMoneyBillWave, label: 'Payroll' },
     { to: '/reports', icon: FaChartBar, label: 'Reports' },

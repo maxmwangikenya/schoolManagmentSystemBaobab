@@ -17,51 +17,48 @@ const Login = () => {
     // Get auth functions from context
     const { login: authLogin } = useAuth();
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setError({ email: '', password: '', general: '' });
-        setIsLoading(true);
+ const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError({ email: '', password: '', general: '' });
+    setIsLoading(true);
 
-        // Client-side validation
-        if (!email) {
-            setIsLoading(false);
-            return setError(prev => ({ ...prev, email: 'Email is required' }));
-        }
-        if (!password) {
-            setIsLoading(false);
-            return setError(prev => ({ ...prev, password: 'Password is required' }));
+    // Client-side validation
+    if (!email) {
+        setIsLoading(false);
+        return setError(prev => ({ ...prev, email: 'Email is required' }));
+    }
+    if (!password) {
+        setIsLoading(false);
+        return setError(prev => ({ ...prev, password: 'Password is required' }));
+    }
+
+    try {
+        // Call the login API directly
+        const response = await fetch('http://localhost:3000/api/auth/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email, password })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || 'Login failed');
         }
 
-        try {
-            // Use the auth context login function
-            const result = await authLogin(email, password);
+        if (data.success && data.token) {
+            // Save token to localStorage
+            localStorage.setItem('token', data.token);
             
-            if (result.success) {
-                // Show success popup
-                toast.success('Login successful! Redirecting...', {
-                    position: "top-center",
-                    autoClose: 2000,
-                    hideProgressBar: false,
-                    closeOnClick: true,
-                    pauseOnHover: true,
-                    draggable: true,
-                    progress: undefined,
-                    theme: "light",
-                });
-            } else {
-                throw new Error(result.error || 'Login failed');
-            }
+            // Save user data to localStorage if needed
+            localStorage.setItem('user', JSON.stringify(data.user));
             
-        } catch (error) {
-            // Handle errors from the auth context
-            setError(prev => ({
-                ...prev,
-                general: error.message || 'Login failed. Please try again.'
-            }));
-            
-            toast.error(error.message || 'Login failed. Please try again.', {
+            // Show success popup
+            toast.success('Login successful! Redirecting...', {
                 position: "top-center",
-                autoClose: 5000,
+                autoClose: 2000,
                 hideProgressBar: false,
                 closeOnClick: true,
                 pauseOnHover: true,
@@ -69,10 +66,42 @@ const Login = () => {
                 progress: undefined,
                 theme: "light",
             });
-        } finally {
-            setIsLoading(false);
+
+            // Optional: Update auth context if you're using it
+            if (authLogin) {
+                authLogin(data.token, data.user);
+            }
+
+            // Redirect after successful login
+            setTimeout(() => {
+                window.location.href = '/admin-dashboard'; // or use navigate if you have react-router
+            }, 2000);
+            
+        } else {
+            throw new Error(data.message || 'Login failed');
         }
-    };
+        
+    } catch (error) {
+        // Handle errors
+        setError(prev => ({
+            ...prev,
+            general: error.message || 'Login failed. Please try again.'
+        }));
+        
+        toast.error(error.message || 'Login failed. Please try again.', {
+            position: "top-center",
+            autoClose: 5000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            progress: undefined,
+            theme: "light",
+        });
+    } finally {
+        setIsLoading(false);
+    }
+};
 
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-teal-600 from-50% to-gray-100 to-50%">

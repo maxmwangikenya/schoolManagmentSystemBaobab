@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useParams, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import AdminSidebar from '../dashboard/AdminSidebar';
 import Navbar from '../Navbar';
 
-const AddDepartment = () => {
+const EditDepartment = () => {
   const [formData, setFormData] = useState({
     dep_name: '',
     description: ''
@@ -12,8 +12,56 @@ const AddDepartment = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
+  const [fetchingData, setFetchingData] = useState(true);
   
   const navigate = useNavigate();
+  const { id } = useParams(); // Get department ID from URL
+  const location = useLocation();
+  
+  // Get department data from navigation state or fetch it
+  useEffect(() => {
+    const loadDepartmentData = async () => {
+      try {
+        setFetchingData(true);
+        
+        // First try to get data from navigation state
+        if (location.state?.department) {
+          setFormData({
+            dep_name: location.state.department.dep_name || '',
+            description: location.state.department.description || ''
+          });
+          setFetchingData(false);
+          return;
+        }
+        
+        // If no state data, fetch from API
+        if (id) {
+          const token = localStorage.getItem('token');
+          const response = await axios.get(`http://localhost:3000/api/departments/${id}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          if (response.data.success) {
+            setFormData({
+              dep_name: response.data.department.dep_name || '',
+              description: response.data.department.description || ''
+            });
+          } else {
+            setError('Department not found');
+          }
+        }
+      } catch (err) {
+        console.error('Error loading department:', err);
+        setError('Failed to load department data');
+      } finally {
+        setFetchingData(false);
+      }
+    };
+
+    loadDepartmentData();
+  }, [id, location.state]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -39,7 +87,7 @@ const AddDepartment = () => {
       setError(null);
       
       const token = localStorage.getItem('token');
-      const response = await axios.post('http://localhost:3000/api/departments/add', formData, {
+      const response = await axios.put(`http://localhost:3000/api/departments/${id}`, formData, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -48,26 +96,40 @@ const AddDepartment = () => {
 
       if (response.data.success) {
         setSuccess(true);
-        // Reset form
-        setFormData({
-          dep_name: '',
-          description: ''
-        });
         
         // Show success message and redirect after 2 seconds
         setTimeout(() => {
           navigate('/admin-dashboard/departments');
         }, 2000);
       } else {
-        setError(response.data.error || 'Failed to add department');
+        setError(response.data.error || 'Failed to update department');
       }
     } catch (err) {
-      console.error('Error adding department:', err);
-      setError(err.response?.data?.error || 'Error adding department');
+      console.error('Error updating department:', err);
+      setError(err.response?.data?.error || 'Error updating department');
     } finally {
       setLoading(false);
     }
   };
+
+  if (fetchingData) {
+    return (
+      <div className="flex min-h-screen bg-gray-50">
+        <AdminSidebar />
+        <div className="flex-1">
+          <div className="bg-white shadow-sm border-b">
+            <Navbar />
+          </div>
+          <div className="p-8">
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto"></div>
+              <p className="mt-4 text-gray-500">Loading department data...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -95,8 +157,8 @@ const AddDepartment = () => {
                 </svg>
               </Link>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Add New Department</h1>
-                <p className="text-gray-600">Create a new department for your organization</p>
+                <h1 className="text-3xl font-bold text-gray-900">Edit Department</h1>
+                <p className="text-gray-600">Update department information</p>
               </div>
             </div>
           </div>
@@ -111,7 +173,7 @@ const AddDepartment = () => {
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
                   <div>
-                    <p className="text-green-700 font-medium">Department added successfully!</p>
+                    <p className="text-green-700 font-medium">Department updated successfully!</p>
                     <p className="text-green-600 text-sm">Redirecting to departments list...</p>
                   </div>
                 </div>
@@ -171,21 +233,21 @@ const AddDepartment = () => {
                   {loading ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      Adding...
+                      Updating...
                     </>
                   ) : success ? (
                     <>
                       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                       </svg>
-                      Added
+                      Updated
                     </>
                   ) : (
                     <>
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
-                      Add Department
+                      Update Department
                     </>
                   )}
                 </button>
@@ -208,4 +270,4 @@ const AddDepartment = () => {
   );
 };
 
-export default AddDepartment;
+export default EditDepartment;

@@ -32,7 +32,7 @@ const checkEmail = async (req, res) => {
 // Login controller
 const login = async (req, res) => {
     try {
-        const { email,  } = req.body;
+        const { email, password } = req.body;
         
         // 1. Find user
         const user = await User.findOne({ email: email.toLowerCase() }).select('+password');

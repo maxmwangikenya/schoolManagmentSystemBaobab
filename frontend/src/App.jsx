@@ -26,6 +26,7 @@ function App() {
 
       <Route path="/admin-dashboard/departments" element={<DepartmentList />} />
       <Route path="/admin-dashboard/add-department" element={<AddDepartmentList />} />
+      <Route path="/admin-dashboard/department/id" element={<AddDepartmentList />} />
 
       <Route path="/register" element={<Register />} />
       <Route path="/unauthorized" element={<div>Unauthorized - You don't have permission to access this page</div>} />

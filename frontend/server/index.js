@@ -14,9 +14,9 @@ const app = express()
 app.use(cors())
 app.use(express.json())
 
-// Routes
+// Routes login
 app.use('/api/auth', authRouter)
-app.use('/api/department', departmentRouter)
+app.use('/api/departments', departmentRouter)
 
 // Basic health check route
 app.get('/', (req, res) => {

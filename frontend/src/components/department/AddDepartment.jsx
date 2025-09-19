@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import AdminSidebar from '../dashboard/AdminSidebar';
-import Navbar from '../Navbar';
+import Navbar from '../dashboard/Navbar';
+import { useParams } from 'react-router-dom';
 
 const AddDepartment = () => {
   const [formData, setFormData] = useState({

@@ -1,5 +1,5 @@
 import React from 'react';
-import { useAuth } from '../context/authContext';
+import { useAuth } from '../../context/authContext';
 import { FaUserCircle, FaSignOutAlt, FaBell } from 'react-icons/fa';
 
 const Navbar = () => {

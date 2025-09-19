@@ -14,7 +14,7 @@ import {
 const AdminSidebar = () => {
   const menuItems = [
     { to: '/admin-dashboard', icon: FaTachometerAlt, label: 'Dashboard' },
-    { to: '/employees', icon: FaUsers, label: 'Employees' },
+    { to: '/admin-dashboard/employees', icon: FaUsers, label: 'Employees' },
     { to: '/admin-dashboard/departments', icon: FaBuilding, label: 'Departments' },
     { to: '/leaves', icon: FaFileAlt, label: 'Leave Management' },
     { to: '/salary', icon: FaMoneyBillWave, label: 'Payroll' },
@@ -50,7 +50,7 @@ const AdminSidebar = () => {
                 className={({ isActive }) =>
                   `group flex items-center gap-4 p-4 rounded-xl transition-all duration-300 ${
                     isActive
-                      ? 'bg-gradient-to-r from-teal-600 to-teal-500 text-white shadow-lg transform scale-105'
+                      ? 'bg-gradient-to-r from-blue-600/10 to-teal-500 text-white shadow-lg transform scale-105'
                       : 'text-gray-300 hover:bg-gradient-to-r hover:from-blue-600/20 hover:to-purple-600/20 hover:text-white hover:transform hover:scale-102'
                   }`
                 }
@@ -70,7 +70,7 @@ const AdminSidebar = () => {
 
         {/* Bottom Section */}
         <div className="mt-8 pt-6 border-t border-gray-700/50">
-          <div className="bg-gradient-to-r from-blue-600/10 to-purple-600/10 p-4 rounded-xl border border-gray-700/30">
+          <div className="bg-gradient-to-r from-blue-600/10 to-teal-500/10 p-4 rounded-xl border border-gray-700/30">
             <h4 className="text-sm font-semibold text-gray-300 mb-2">Quick Stats</h4>
             <div className="space-y-2 text-xs text-gray-400">
               <div className="flex justify-between">

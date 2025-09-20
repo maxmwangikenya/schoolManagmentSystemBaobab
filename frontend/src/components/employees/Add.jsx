@@ -89,7 +89,7 @@ const AddEmployee = () => {
       });
 
       if (response.data.success) {
-        alert('Employee added successfully!');
+        alert('/admin-dashboard/employees');
         // Reset form
         setFormData({
           name: '',

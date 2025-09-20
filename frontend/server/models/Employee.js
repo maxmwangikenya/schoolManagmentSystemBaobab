@@ -1,6 +1,7 @@
 import mongoose, { Schema } from "mongoose";
 
 const userSchema = new Schema({
+    // Your user schema fields here
     name: {
         type: String,
         required: true
@@ -19,14 +20,7 @@ const userSchema = new Schema({
         required: true,
         enum: ['admin', 'employee']
     },
-    phoneNumber: {
-        type: String,
-        required: false
-    },
-    address: {
-        type: String,
-        required: false
-    },
+    // Add other fields as needed
     createdAt: {
         type: Date,
         default: Date.now
@@ -37,21 +31,7 @@ const userSchema = new Schema({
     }
 });
 
-// Add pre-save middleware to update the updatedAt field
-userSchema.pre('save', function(next) {
-    this.updatedAt = Date.now();
-    next();
-});
-
-// Proper way to handle model compilation
-let User;
-
-try {
-    // Try to get existing model
-    User = mongoose.model('User');
-} catch (error) {
-    // Model doesn't exist, create it
-    User = mongoose.model('User', userSchema);
-}
+// Check if model already exists, if not create it
+const User = mongoose.models.User || mongoose.model('User', userSchema);
 
 export default User;

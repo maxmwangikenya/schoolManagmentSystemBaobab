@@ -621,7 +621,7 @@ const List = () => {
 
       {/* Edit Employee Modal */}
       {showEditModal && selectedEmployee && (
-        <div className="fixed inset-0 bg-cream-200 bg-opacity-40 overflow-y-auto h-full w-full z-50" onClick={closeEditModal}>
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" onClick={closeEditModal}>
           <div className="relative top-10 mx-auto p-5 border w-11/12 max-w-3xl shadow-xl rounded-xl bg-white" onClick={(e) => e.stopPropagation()}>
             <div className="mt-3">
               {/* Modal Header */}
@@ -763,9 +763,9 @@ const List = () => {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                     >
                       <option value="">Select Gender</option>
-                      <option value="male">Male</option>
-                      <option value="female">Female</option>
-                      <option value="other">Other</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
                     </select>
                   </div>
 
@@ -778,10 +778,10 @@ const List = () => {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                     >
                       <option value="">Select Status</option>
-                      <option value="single">Single</option>
-                      <option value="married">Married</option>
-                      <option value="divorced">Divorced</option>
-                      <option value="widowed">Widowed</option>
+                      <option value="Single">Single</option>
+                      <option value="Married">Married</option>
+                      <option value="Divorced">Divorced</option>
+                      <option value="Widowed">Widowed</option>
                     </select>
                   </div>
 

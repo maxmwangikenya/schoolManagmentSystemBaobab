@@ -1,37 +1,66 @@
 import mongoose, { Schema } from "mongoose";
 
-const userSchema = new Schema({
-    // Your user schema fields here
-    name: {
-        type: String,
+const employeeSchema = new Schema({
+    name: { 
+        type: String, 
+        required: true 
+    },
+    email: { 
+        type: String, 
+        required: true, 
+        unique: true 
+    },
+    employeeId: { 
+        type: String, 
+        required: true,
+        unique: true 
+    },
+    dob: { 
+        type: Date 
+    },
+    gender: { 
+        type: String, 
+        enum: ['Male', 'Female', 'Other']
+    },
+    maritalStatus: { 
+        type: String, 
+        enum: ['Single', 'Married', 'Divorced', 'Widowed']
+    },
+    designation: { 
+        type: String 
+    },
+    department: { 
+        type: String 
+    },
+    salary: { 
+        type: Number 
+    },
+    profileImage: { 
+        type: String 
+    },
+    user: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
         required: true
     },
-    email: {
-        type: String,
-        required: true,
-        unique: true
+    createdAt: { 
+        type: Date, 
+        default: Date.now 
     },
-    password: {
-        type: String,
-        required: true
-    },
-    role: {
-        type: String,
-        required: true,
-        enum: ['admin', 'employee']
-    },
-    // Add other fields as needed
-    createdAt: {
-        type: Date,
-        default: Date.now
-    },
-    updatedAt: {
-        type: Date,
-        default: Date.now
+    updatedAt: { 
+        type: Date, 
+        default: Date.now 
     }
 });
 
-// Check if model already exists, if not create it
-const User = mongoose.models.User || mongoose.model('User', userSchema);
+// Auto-update updatedAt
+employeeSchema.pre("save", function (next) {
+    this.updatedAt = Date.now();
+    next();
+});
 
-export default User;
+// ✅ Force model recompilation to ensure schema changes take effect
+delete mongoose.models.Employee;
+const Employee = mongoose.model("Employee", employeeSchema);
+
+export default Employee;

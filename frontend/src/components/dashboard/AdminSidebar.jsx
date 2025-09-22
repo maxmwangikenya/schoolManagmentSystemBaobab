@@ -47,22 +47,27 @@ const AdminSidebar = () => {
               <NavLink
                 key={item.to}
                 to={item.to}
-                className={({ isActive }) =>
-                  `group flex items-center gap-4 p-4 rounded-xl transition-all duration-300 ${
+                end={item.to === '/admin-dashboard'} // Add exact matching for dashboard
+                className={({ isActive }) => {
+                  return `group flex items-center gap-4 p-4 rounded-xl transition-all duration-300 ${
                     isActive
-                      ? 'bg-gradient-to-r from-blue-600/10 to-teal-500 text-white shadow-lg transform scale-105'
+                      ? 'bg-gradient-to-r from-blue-400/30 to-teal-500/70 text-white shadow-lg transform scale-105'
                       : 'text-gray-300 hover:bg-gradient-to-r hover:from-blue-600/20 hover:to-purple-600/20 hover:text-white hover:transform hover:scale-102'
-                  }`
-                }
+                  }`;
+                }}
               >
-                <div className={`p-2 rounded-lg transition-colors ${
-                  ({ isActive }) => isActive 
-                    ? 'bg-white/20' 
-                    : 'bg-gray-700/50 group-hover:bg-blue-500/20'
-                }`}>
-                  <IconComponent className="text-lg" />
-                </div>
-                <span className="font-medium tracking-wide">{item.label}</span>
+                {({ isActive }) => (
+                  <>
+                    <div className={`p-2 rounded-lg transition-colors ${
+                      isActive 
+                        ? 'bg-white/20' 
+                        : 'bg-gray-700/50 group-hover:bg-blue-500/20'
+                    }`}>
+                      <IconComponent className="text-lg" />
+                    </div>
+                    <span className="font-medium tracking-wide">{item.label}</span>
+                  </>
+                )}
               </NavLink>
             );
           })}

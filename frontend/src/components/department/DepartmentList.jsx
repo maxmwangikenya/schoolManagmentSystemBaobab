@@ -22,7 +22,7 @@ const DepartmentList = () => {
     description: ''
   });
 
-  // ✅ Pagination state
+  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5; // Show 5 departments per page
 
@@ -208,19 +208,19 @@ const DepartmentList = () => {
     );
   }
 
-  // ✅ Pagination Logic
+  // Pagination Logic
   const totalPages = Math.ceil(departments.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const currentDepartments = departments.slice(startIndex, startIndex + itemsPerPage);
 
-  // ✅ Handle page change
+  // Handle page change
   const handlePageChange = (page) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
     }
   };
 
-  // ✅ Generate page numbers (show max 5 pages, with ellipsis if needed)
+  // Generate page numbers (show max 5 pages, with ellipsis if needed)
   const getPageNumbers = () => {
     const pages = [];
     const maxPagesToShow = 5;
@@ -423,7 +423,7 @@ const DepartmentList = () => {
                   </table>
                 </div>
 
-                {/* ✅ PAGINATION CONTROLS — ARROWS + CENTERED PAGE NUMBERS */}
+                {/* PAGINATION CONTROLS — ARROWS + CENTERED PAGE NUMBERS */}
                 {totalPages > 1 && (
                   <div className="flex items-center justify-center py-6 bg-gray-50 border-t border-gray-200">
                     <div className="flex items-center space-x-2">
@@ -480,117 +480,160 @@ const DepartmentList = () => {
 
       {/* Edit Department Modal */}
       {showEditModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <div className="flex items-center mb-4">
-              <div className="flex-shrink-0">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <h3 className="text-lg font-medium text-gray-900">
-                  Edit Department
-                </h3>
+        <div className="absolute top-0 left-0 right-0 z-50 p-4" onClick={cancelEdit}>
+          <div className="mx-auto max-w-2xl shadow-2xl rounded-2xl bg-white border-2 border-blue-100 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            {/* Header with gradient background */}
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="bg-white/20 backdrop-blur-sm p-3 rounded-lg">
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-white">Edit Department</h3>
+                    <p className="text-blue-100">Update department information</p>
+                  </div>
+                </div>
+                <button
+                  onClick={cancelEdit}
+                  className="text-white/80 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-lg"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
             </div>
 
-            <form onSubmit={handleEditSubmit}>
-              <div className="mb-4">
-                <label htmlFor="dep_name" className="block text-sm font-medium text-gray-700 mb-2">
-                  Department Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  id="dep_name"
-                  name="dep_name"
-                  value={editFormData.dep_name}
-                  onChange={handleEditInputChange}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                  placeholder="Enter department name"
-                />
-              </div>
+            {/* Form Content */}
+            <div className="p-8">
+              <form onSubmit={handleEditSubmit} className="space-y-6">
+                {/* Department Name */}
+                <div>
+                  <label htmlFor="dep_name" className="block text-sm font-semibold text-gray-800 mb-3">
+                    Department Name <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                      <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
+                    </div>
+                    <input
+                      type="text"
+                      id="dep_name"
+                      name="dep_name"
+                      value={editFormData.dep_name}
+                      onChange={handleEditInputChange}
+                      required
+                      className="w-full pl-12 pr-4 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-lg font-medium bg-gray-50 focus:bg-white"
+                      placeholder="Enter department name"
+                    />
+                  </div>
+                </div>
 
-              <div className="mb-6">
-                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-                  Description
-                </label>
-                <textarea
-                  id="description"
-                  name="description"
-                  value={editFormData.description}
-                  onChange={handleEditInputChange}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                  placeholder="Enter department description"
-                />
-              </div>
+                {/* Description */}
+                <div>
+                  <label htmlFor="description" className="block text-sm font-semibold text-gray-800 mb-3">
+                    Description
+                  </label>
+                  <div className="relative">
+                    <div className="absolute top-4 left-4 pointer-events-none">
+                      <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
+                      </svg>
+                    </div>
+                    <textarea
+                      id="description"
+                      name="description"
+                      value={editFormData.description}
+                      onChange={handleEditInputChange}
+                      rows={4}
+                      className="w-full pl-12 pr-4 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 resize-none bg-gray-50 focus:bg-white"
+                      placeholder="Enter department description (optional)"
+                    />
+                  </div>
+                </div>
 
-              <div className="flex justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={cancelEdit}
-                  disabled={editLoading}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 disabled:opacity-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={editLoading}
-                  className="px-4 py-2 text-sm font-medium text-white bg-teal-600 border border-transparent rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                >
-                  {editLoading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Updating...
-                    </>
-                  ) : (
-                    'Update Department'
-                  )}
-                </button>
-              </div>
-            </form>
+                {/* Action Buttons */}
+                <div className="flex justify-end space-x-4 pt-6 border-t border-gray-100">
+                  <button
+                    type="button"
+                    onClick={cancelEdit}
+                    disabled={editLoading}
+                    className="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all duration-200 font-medium disabled:opacity-50 border-2 border-gray-200"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={editLoading}
+                    className="px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 font-medium disabled:opacity-50 flex items-center space-x-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                  >
+                    {editLoading && (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    )}
+                    <span>{editLoading ? 'Updating...' : 'Update Department'}</span>
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md mx-4">
-            <div className="flex items-center mb-4">
-              <div className="flex-shrink-0">
-                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.268 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                </svg>
+        <div className="absolute top-0 left-0 right-0 z-50 p-4" onClick={cancelDelete}>
+          <div className="mx-auto max-w-md shadow-2xl rounded-xl bg-white border-2 border-gray-200" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-3">
+                  <div className="bg-red-100 p-2 rounded-lg">
+                    <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.268 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900">Confirm Delete</h3>
+                  </div>
+                </div>
+                <button
+                  onClick={cancelDelete}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
-              <div className="ml-3">
-                <h3 className="text-lg font-medium text-gray-900">
-                  Confirm Delete
-                </h3>
+
+              {/* Content */}
+              <div className="mb-6">
+                <p className="text-gray-600">
+                  Are you sure you want to delete the department <span className="font-semibold text-gray-900">"{departmentToDelete?.dep_name}"</span>? 
+                  This action cannot be undone.
+                </p>
               </div>
-            </div>
-            <div className="mb-4">
-              <p className="text-sm text-gray-500">
-                Are you sure you want to delete the department "{departmentToDelete?.dep_name}"? 
-                This action cannot be undone.
-              </p>
-            </div>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={cancelDelete}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmDelete}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-              >
-                Delete
-              </button>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={cancelDelete}
+                  className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                >
+                  Delete Department
+                </button>
+              </div>
             </div>
           </div>
         </div>

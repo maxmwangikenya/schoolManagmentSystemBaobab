@@ -6,45 +6,51 @@ const Navbar = () => {
   const { user, logout } = useAuth();
 
   return (
-    <div className="w-full flex items-center justify-between h-16 bg-gradient-to-r from-teal-600 to-teal-700 px-6 text-white shadow-lg">
-      {/* Left Section - Logo/Brand */}
-      <div className="flex items-center gap-6">
-        <div className="flex items-center gap-3">
-          <div className="bg-white/10 p-2 rounded-lg">
-
-          </div>
-          <div className="hidden md:block w-px h-8 bg-teal-400/30"></div>
-          <div className="hidden md:flex items-center gap-2">
-            <FaUserCircle className="text-lg text-teal-200" />
-            <div>
-              <p className="text-sm font-medium">Welcome back,</p>
-              <p className="text-base font-semibold">{user?.name || 'Guest'}</p>
+    <div className="w-full bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 shadow-2xl border-b border-indigo-500/20">
+      <div className="flex items-center justify-between h-20 px-8 text-white">
+        {/* Left Section - Enhanced Logo/Brand */}
+        <div className="flex items-center gap-8">
+          <div className="flex items-center gap-4">
+            <div className="bg-white/15 backdrop-blur-sm p-3 rounded-2xl shadow-lg">
+              <h3 className="text-xl font-bold bg-gradient-to-r from-white to-indigo-100 bg-clip-text text-transparent">
+                Employee MS
+              </h3>
+            </div>
+            <div className="hidden md:block w-px h-10 bg-indigo-400/40"></div>
+            <div className="hidden md:flex items-center gap-4">
+              <div className="p-2 bg-white/10 rounded-xl">
+                <FaUserCircle className="text-2xl text-indigo-200" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-indigo-100">Welcome back,</p>
+                <p className="text-lg font-bold text-white">{user?.name || 'Guest'}</p>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Right Section */}
-      <div className="flex items-center gap-4">
-        {/* Notifications */}
-        <button className="relative p-2 rounded-full hover:bg-teal-500/20 transition-colors">
-          <FaBell className="text-xl" />
-          <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>
-        </button>
-
-        {/* User Info & Logout */}
-        <div className="flex items-center gap-3 pl-4 border-l border-teal-500/30">
-          <div className="text-right hidden sm:block">
-            <p className="text-sm font-medium">{user?.name || 'Guest'}</p>
-            <p className="text-xs text-teal-200 capitalize">{user?.role || 'User'}</p>
-          </div>
-          <button 
-            onClick={logout}
-            className="flex items-center gap-2 bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:scale-105"
-          >
-            <FaSignOutAlt />
-            <span className="hidden sm:inline">Logout</span>
+        {/* Right Section - Enhanced */}
+        <div className="flex items-center gap-6">
+          {/* Enhanced Notifications */}
+          <button className="relative p-4 rounded-2xl hover:bg-white/15 backdrop-blur-sm transition-all duration-300 group shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
+            <FaBell className="text-xl group-hover:rotate-12 transition-transform duration-300" />
+            <span className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-red-500 to-rose-600 rounded-full animate-pulse shadow-lg"></span>
           </button>
+
+          {/* Enhanced User Info & Logout */}
+          <div className="flex items-center gap-4 pl-6 border-l border-indigo-400/30">
+            <div className="text-right hidden sm:block">
+              <p className="text-sm font-semibold text-white">{user?.name || 'Guest'}</p>
+              <p className="text-xs text-indigo-200 capitalize font-medium">{user?.role || 'User'}</p>
+            </div>
+            <button 
+              onClick={logout}
+              className="group flex items-center gap-3 bg-white/15 backdrop-blur-sm hover:bg-white/25 px-5 py-3 rounded-2xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 hover:scale-105"
+            >
+              <FaSignOutAlt className="group-hover:rotate-12 transition-transform duration-300" />
+              <span className="hidden sm:inline">Logout</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -469,8 +469,7 @@ const passwordController = {
         hasUppercase: /[A-Z]/.test(password),
         hasLowercase: /[a-z]/.test(password),
         hasNumbers: /\d/.test(password),
-        hasSpecialChars: new RegExp(`[${policy.specialCharacters.replace(/[.*+?^${}()|[\]\\]/g, '\\  // Get current password policy
-  getPasswordPolicy: async (req, res) => {')}]`).test(password),
+        hasSpecialChars: new RegExp(`[${policy.specialCharacters.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}]`).test(password),
         uniqueCharacters: new Set(password).size,
         commonPatterns: {
           repeatingChars: /(.)\1{2,}/.test(password),

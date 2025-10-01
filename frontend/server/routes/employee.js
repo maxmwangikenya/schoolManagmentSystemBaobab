@@ -1,5 +1,5 @@
 import express from 'express';
-import middleware from '../middleware/authMiddleware.js';
+import { verifyUser } from '../middleware/authMiddleware.js';
 import {
   addEmployee, 
   getAllEmployees, 
@@ -12,18 +12,18 @@ import {
 const router = express.Router();
 
 // GET all employees
-router.get('/', middleware, getAllEmployees);
+router.get('/', verifyUser, getAllEmployees);
 
 // GET single employee by ID
-router.get('/:id', middleware, getEmployeeById);
+router.get('/:id', verifyUser, getEmployeeById);
 
 // POST add new employee
-router.post('/add', middleware, uploadSingle, addEmployee);
+router.post('/add', verifyUser, uploadSingle, addEmployee);
 
 // PUT update employee
-router.put('/:id', middleware, uploadSingle, updateEmployee);
+router.put('/:id', verifyUser, uploadSingle, updateEmployee);
 
 // DELETE employee
-router.delete('/:id', middleware, deleteEmployee);
+router.delete('/:id', verifyUser, deleteEmployee);
 
 export default router;

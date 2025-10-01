@@ -1,12 +1,12 @@
 // routes/salary.js
 import express from 'express';
 import salaryController from '../controllers/salaryController.js';
-import authMiddleware from '../middleware/authMiddleware.js'; // Adjust path as needed
+import { verifyUser } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
 // Apply auth middleware to all routes
-router.use(authMiddleware);
+router.use(verifyUser);
 
 // GET /api/salary - Get all salaries
 router.get('/', salaryController.getAllSalaries);

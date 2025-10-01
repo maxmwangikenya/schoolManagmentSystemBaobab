@@ -1,8 +1,8 @@
+// components/Register.js
 import React, { useState } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { useAuth } from '../context/authContext';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const Register = () => {
     const [formData, setFormData] = useState({
@@ -14,8 +14,32 @@ const Register = () => {
     });
     const [isLoading, setIsLoading] = useState(false);
     const [errors, setErrors] = useState({});
+    const navigate = useNavigate();
 
-    const { register: authRegister } = useAuth();
+    // Registration function
+    const authRegister = async (userData) => {
+        try {
+            const response = await fetch('http://localhost:3000/api/auth/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(userData),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Registration failed');
+            }
+
+            return data;
+
+        } catch (error) {
+            console.error('Registration error:', error);
+            throw error;
+        }
+    };
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -84,7 +108,7 @@ const Register = () => {
             const result = await authRegister(registrationData);
             
             if (result.success) {
-                toast.success('Registration successful! Redirecting...', {
+                toast.success('Registration successful! Redirecting to login...', {
                     position: "top-center",
                     autoClose: 2000,
                     hideProgressBar: false,
@@ -94,6 +118,11 @@ const Register = () => {
                     progress: undefined,
                     theme: "light",
                 });
+                
+                // Redirect to login after success
+                setTimeout(() => {
+                    navigate('/login');
+                }, 2000);
             } else {
                 throw new Error(result.error || 'Registration failed');
             }

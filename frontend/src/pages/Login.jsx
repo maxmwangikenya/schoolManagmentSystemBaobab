@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { useAuth } from '../context/authContext'; // Fixed import path
-import { Link } from 'react-router-dom'; // Add this for navigation
 
 const Login = () => {
     const [email, setEmail] = useState('');
@@ -14,94 +13,112 @@ const Login = () => {
         general: ''
     });
 
-    // Get auth functions from context
-    const { login: authLogin } = useAuth();
+    const navigate = useNavigate();
 
- const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError({ email: '', password: '', general: '' });
-    setIsLoading(true);
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError({ email: '', password: '', general: '' });
+        setIsLoading(true);
 
-    // Client-side validation
-    if (!email) {
-        setIsLoading(false);
-        return setError(prev => ({ ...prev, email: 'Email is required' }));
-    }
-    if (!password) {
-        setIsLoading(false);
-        return setError(prev => ({ ...prev, password: 'Password is required' }));
-    }
-
-    try {
-        // Call the login API directly
-        const response = await fetch('http://localhost:3000/api/auth/login', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ email, password })
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(data.message || 'Login failed');
+        // Client-side validation
+        if (!email) {
+            setIsLoading(false);
+            return setError(prev => ({ ...prev, email: 'Email is required' }));
+        }
+        if (!password) {
+            setIsLoading(false);
+            return setError(prev => ({ ...prev, password: 'Password is required' }));
         }
 
-        if (data.success && data.token) {
-            // Save token to localStorage
-            localStorage.setItem('token', data.token);
+        try {
+            console.log('Attempting login with:', { email }); // Debug log
             
-            // Save user data to localStorage if needed
-            localStorage.setItem('user', JSON.stringify(data.user));
+            const response = await fetch('http://localhost:3000/api/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include', // Important for cookies if backend uses them
+                body: JSON.stringify({ email, password })
+            });
+
+            console.log('Response status:', response.status); // Debug log
+
+            const data = await response.json();
+            console.log('Response data:', data); // Debug log
+
+            if (!response.ok) {
+                // Handle specific error messages from backend
+                if (response.status === 401) {
+                    throw new Error('Invalid email or password');
+                } else if (response.status === 404) {
+                    throw new Error('User not found');
+                } else {
+                    throw new Error(data.error || data.message || 'Login failed');
+                }
+            }
+
+            if (data.success && data.token) {
+                // Save token and user to localStorage
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('user', JSON.stringify(data.user));
+                
+                // Show success toast
+                toast.success(`Welcome back, ${data.user.name}!`, {
+                    position: "top-center",
+                    autoClose: 1500,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: false,
+                    draggable: true,
+                });
+
+                // Redirect based on role after a short delay
+                setTimeout(() => {
+                    if (data.user.role === 'admin') {
+                        navigate('/admin-dashboard');
+                    } else if (data.user.role === 'employee') {
+                        navigate('/employee-dashboard');
+                    } else {
+                        navigate('/');
+                    }
+                }, 1500);
+                
+            } else {
+                throw new Error(data.error || data.message || 'Login failed');
+            }
             
-            // Show success popup
-            toast.success('Login successful! Redirecting...', {
+        } catch (error) {
+            console.error('Login error:', error);
+            
+            // Handle network errors specifically
+            let errorMessage = 'Login failed. Please try again.';
+            
+            if (error.message === 'Failed to fetch') {
+                errorMessage = 'Cannot connect to server. Please ensure the backend is running on port 3000.';
+            } else if (error.message.includes('NetworkError')) {
+                errorMessage = 'Network error. Please check your connection and ensure CORS is configured.';
+            } else {
+                errorMessage = error.message;
+            }
+            
+            setError(prev => ({
+                ...prev,
+                general: errorMessage
+            }));
+            
+            toast.error(errorMessage, {
                 position: "top-center",
-                autoClose: 2000,
+                autoClose: 5000,
                 hideProgressBar: false,
                 closeOnClick: true,
                 pauseOnHover: true,
                 draggable: true,
-                progress: undefined,
-                theme: "light",
             });
-
-            // Optional: Update auth context if you're using it
-            if (authLogin) {
-                authLogin(data.token, data.user);
-            }
-
-            // Redirect after successful login
-            setTimeout(() => {
-                window.location.href = '/admin-dashboard'; // or use navigate if you have react-router
-            }, 2000);
-            
-        } else {
-            throw new Error(data.message || 'Login failed');
+        } finally {
+            setIsLoading(false);
         }
-        
-    } catch (error) {
-        // Handle errors
-        setError(prev => ({
-            ...prev,
-            general: error.message || 'Login failed. Please try again.'
-        }));
-        
-        toast.error(error.message || 'Login failed. Please try again.', {
-            position: "top-center",
-            autoClose: 5000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-            progress: undefined,
-            theme: "light",
-        });
-    } finally {
-        setIsLoading(false);
-    }
-};
+    };
 
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-teal-600 from-50% to-gray-100 to-50%">
@@ -192,13 +209,13 @@ const Login = () => {
                             </label>
                         </div>
 
-                        <a 
-                            href="#"
+                        <Link 
+                            to="/forgot-password"
                             className="text-sm text-teal-600 hover:text-teal-500 hover:underline
                             transition duration-200"
                         >
                             Forgot password?
-                        </a>
+                        </Link>
                     </div>
                     
                     <button

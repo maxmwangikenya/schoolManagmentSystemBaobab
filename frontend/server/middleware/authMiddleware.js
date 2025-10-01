@@ -1,114 +1,76 @@
-// middleware/authMiddleware.js
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
-import Employee from '../models/Employee.js';
 
-const verifyUser = async (req, res, next) => {
+// Verify JWT token middleware
+export const verifyUser = async (req, res, next) => {
     try {
         const authHeader = req.headers.authorization;
+        
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return res.status(401).json({ 
-                success: false, 
-                error: "Access denied. No token provided." 
+            return res.status(401).json({
+                success: false,
+                error: 'No token provided'
             });
         }
 
         const token = authHeader.split(' ')[1];
         
         if (!token) {
-            return res.status(401).json({ 
-                success: false, 
-                error: "Access denied. Invalid token format." 
+            return res.status(401).json({
+                success: false,
+                error: 'Invalid token format'
             });
         }
 
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_key');
-        
-        // Check both User and Employee collections
-        let user = await User.findById(decoded._id).select('-password');
+        const user = await User.findById(decoded._id).select('-password');
         
         if (!user) {
-            user = await Employee.findById(decoded._id).select('-password');
-        }
-        
-        if (!user) {
-            return res.status(401).json({ 
-                success: false, 
-                error: "Token is no longer valid. User not found." 
+            return res.status(401).json({
+                success: false,
+                error: 'User not found'
             });
         }
 
-        // Attach user with id property (for password controller compatibility)
-        req.user = {
-            ...user.toObject(),
-            id: user._id.toString()
-        };
-        
+        req.user = user;
         next();
-
+        
     } catch (error) {
         console.error('Auth middleware error:', error);
         
         if (error.name === 'JsonWebTokenError') {
-            return res.status(401).json({ 
-                success: false, 
-                error: "Invalid token." 
+            return res.status(401).json({
+                success: false,
+                error: 'Invalid token'
             });
         }
         
         if (error.name === 'TokenExpiredError') {
-            return res.status(401).json({ 
-                success: false, 
-                error: "Token has expired." 
+            return res.status(401).json({
+                success: false,
+                error: 'Token expired'
             });
         }
-
-        res.status(500).json({ 
-            success: false, 
-            error: "Server error during authentication." 
+        
+        return res.status(500).json({
+            success: false,
+            error: 'Authentication failed'
         });
     }
 };
 
-// Admin middleware
-const requireRole = (roles) => {
-    return (req, res, next) => {
-        if (!req.user) {
-            return res.status(401).json({ 
-                success: false, 
-                error: "Authentication required." 
-            });
-        }
-
-        if (!roles.includes(req.user.role)) {
-            return res.status(403).json({ 
-                success: false, 
-                error: `Access denied. Required role: ${roles.join(', ')}` 
-            });
-        }
-
+// Admin role check middleware
+export const adminMiddleware = (req, res, next) => {
+    if (req.user && req.user.role === 'admin') {
         next();
-    };
-};
-
-// Admin-only middleware
-const adminMiddleware = (req, res, next) => {
-    if (!req.user) {
-        return res.status(401).json({ 
-            success: false, 
-            error: "Authentication required." 
+    } else {
+        return res.status(403).json({
+            success: false,
+            error: 'Access denied. Admin privileges required.'
         });
     }
-
-    if (req.user.role !== 'admin') {
-        return res.status(403).json({ 
-            success: false, 
-            error: "Access denied. Admin privileges required." 
-        });
-    }
-
-    next();
 };
-
-export { verifyUser, requireRole, adminMiddleware };
-export default verifyUser;
+export default {
+    verifyUser,
+    adminMiddleware
+};

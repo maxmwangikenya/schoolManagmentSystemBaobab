@@ -59,7 +59,7 @@ const DepartmentList = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:3000/api/departments/add', {
+      const response = await axios.get('http://localhost:3000/api/departments', {
         headers: {
           'Authorization': `Bearer ${token}`
         }

@@ -34,26 +34,62 @@ const login = async (req, res) => {
     try {
         const { email, password } = req.body;
         
-        // 1. Find user
+        console.log('\n🔐 ===== LOGIN PROCESS START =====');
+        console.log('📧 Email received:', email);
+        console.log('🔑 Password received:', password ? `Yes (${password.length} chars)` : 'No');
+        
+        // Validate input
+        if (!email || !password) {
+            console.log('❌ Missing email or password');
+            return res.status(400).json({ 
+                success: false, 
+                error: "Email and password are required" 
+            });
+        }
+        
+        // Find user
+        console.log('🔍 Searching for user in database...');
         const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
         
         if (!user) {
+            console.log('❌ User not found in database:', email);
+            console.log('💡 TIP: Make sure this user exists. Run the createTestUser.js script.');
             return res.status(401).json({ 
                 success: false, 
                 error: "Invalid credentials" 
             });
         }
 
-        // 2. Verify password
+        console.log('✅ User found:', {
+            id: user._id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            hasPassword: !!user.password
+        });
+
+        // Verify password
+        console.log('🔐 Comparing passwords...');
         const isMatch = await bcrypt.compare(password, user.password);
+        
         if (!isMatch) {
+            console.log('❌ Password does not match for:', email);
+            console.log('💡 TIP: Password in database might be different. Try resetting it.');
             return res.status(401).json({ 
                 success: false, 
                 error: "Invalid credentials" 
             });
         }
 
-        // 3. Generate JWT
+        console.log('✅ Password matches!');
+
+        // Check for JWT_SECRET
+        if (!process.env.JWT_SECRET) {
+            console.warn('⚠️  WARNING: JWT_SECRET not set in .env file! Using fallback.');
+        }
+
+        // Generate JWT
+        console.log('🎫 Generating JWT token...');
         const token = jwt.sign(
             { 
                 _id: user._id, 
@@ -64,7 +100,14 @@ const login = async (req, res) => {
             { expiresIn: "10d" }
         );
 
-        // 4. Send response
+        console.log('✅ Login successful!');
+        console.log('👤 User:', user.name);
+        console.log('📧 Email:', user.email);
+        console.log('🎭 Role:', user.role);
+        console.log('🎫 Token generated (first 20 chars):', token.substring(0, 20) + '...');
+        console.log('===== LOGIN PROCESS END =====\n');
+
+        // Send response
         res.status(200).json({
             success: true,
             token,
@@ -77,10 +120,11 @@ const login = async (req, res) => {
         });
         
     } catch (error) {
-        console.error('Login error:', error);
+        console.error('❌ LOGIN ERROR:', error);
+        console.error('Error stack:', error.stack);
         res.status(500).json({ 
             success: false, 
-            error: "Authentication failed" 
+            error: "Authentication failed. Please try again." 
         });
     }
 };
@@ -90,36 +134,53 @@ const register = async (req, res) => {
     try {
         const { name, email, password, role } = req.body;
 
-        // 1. Validate required fields
+        console.log('\n📝 ===== REGISTRATION PROCESS START =====');
+        console.log('Data received:', { 
+            name, 
+            email, 
+            role,
+            passwordLength: password?.length 
+        });
+
+        // Validate required fields
         if (!name || !email || !password || !role) {
+            console.log('❌ Missing required fields');
             return res.status(400).json({
                 success: false,
                 error: "All fields are required"
             });
         }
 
-        // 2. Validate role
+        // Validate role
         if (!['admin', 'employee'].includes(role.toLowerCase())) {
+            console.log('❌ Invalid role:', role);
             return res.status(400).json({
                 success: false,
                 error: "Role must be either 'admin' or 'employee'"
             });
         }
 
-        // 3. Check if user already exists
+        // Check if user already exists
+        console.log('🔍 Checking if user exists...');
         const existingUser = await User.findOne({ email: email.toLowerCase() });
         if (existingUser) {
+            console.log('❌ User already exists:', email);
             return res.status(409).json({
                 success: false,
                 error: "User with this email already exists"
             });
         }
 
-        // 4. Hash password
+        console.log('✅ Email is available');
+
+        // Hash password
+        console.log('🔐 Hashing password...');
         const saltRounds = 12;
         const hashedPassword = await bcrypt.hash(password, saltRounds);
+        console.log('✅ Password hashed');
 
-        // 5. Create new user
+        // Create new user
+        console.log('💾 Creating user in database...');
         const newUser = new User({
             name: name.trim(),
             email: email.toLowerCase().trim(),
@@ -127,10 +188,12 @@ const register = async (req, res) => {
             role: role.toLowerCase()
         });
 
-        // 6. Save user to database
+        // Save user to database
         await newUser.save();
+        console.log('✅ User saved to database');
 
-        // 7. Generate JWT token
+        // Generate JWT token
+        console.log('🎫 Generating JWT token...');
         const token = jwt.sign(
             {
                 _id: newUser._id,
@@ -141,7 +204,13 @@ const register = async (req, res) => {
             { expiresIn: "10d" }
         );
 
-        // 8. Send success response
+        console.log('✅ Registration successful!');
+        console.log('👤 User:', newUser.name);
+        console.log('📧 Email:', newUser.email);
+        console.log('🎭 Role:', newUser.role);
+        console.log('===== REGISTRATION PROCESS END =====\n');
+
+        // Send success response
         res.status(201).json({
             success: true,
             token,
@@ -154,7 +223,8 @@ const register = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Registration error:', error);
+        console.error('❌ REGISTRATION ERROR:', error);
+        console.error('Error stack:', error.stack);
         
         if (error.code === 11000) {
             return res.status(409).json({
@@ -173,6 +243,8 @@ const register = async (req, res) => {
 // Logout controller
 const logout = async (req, res) => {
     try {
+        console.log('👋 User logging out:', req.user?.email);
+        
         // Client-side should remove the token
         res.status(200).json({
             success: true,
@@ -187,5 +259,25 @@ const logout = async (req, res) => {
     }
 };
 
+// Verify token (GET route)
+const verifyToken = async (req, res) => {
+    try {
+        console.log('🔍 Token verified for:', req.user?.email);
+        
+        // req.user is already set by verifyUser middleware
+        res.json({
+            success: true,
+            message: "Token is valid",
+            user: req.user
+        });
+    } catch (error) {
+        console.error('Token verification error:', error);
+        res.status(500).json({
+            success: false,
+            error: "Token verification failed"
+        });
+    }
+};
+
 // Export all functions
-export { login, register, logout, checkEmail };
+export { login, register, logout, checkEmail, verifyToken };

@@ -70,7 +70,7 @@ export const adminMiddleware = (req, res, next) => {
         });
     }
 };
-export default {
-    verifyUser,
-    adminMiddleware
-};
+// Keep named exports
+
+
+export default verifyUser;

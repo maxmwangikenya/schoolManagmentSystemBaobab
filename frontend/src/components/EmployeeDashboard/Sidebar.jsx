@@ -17,11 +17,10 @@ const Sidebar = () => {
 const menuItems = [
   { to: '/employee-dashboard', icon: FaTachometerAlt, label: 'Dashboard' },
   { to: `/employee-dashboard/profile/${user.employeeId || user._id}`, icon: FaUsers, label: 'My Profile' },
-  { to: '/employee-dashboard/leaves', icon: FaBuilding, label: 'Leaves' },
+  { to: `/employee-dashboard/leave/${user.employeeId || user._id}`, icon: FaBuilding, label: 'Leaves' },
   { to: '/employee-dashboard/salary', icon: FaFileAlt, label: 'Salary' },
   { to: '/employee-dashboard/settings', icon: FaCog, label: 'Settings' }
 ];
-
   return (
     <div className="w-72 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 text-white min-h-screen shadow-2xl">
       {/* Enhanced Header */}

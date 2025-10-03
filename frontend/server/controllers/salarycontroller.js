@@ -1,4 +1,3 @@
-// controllers/salaryController.js
 import Salary from '../models/Salary.js';
 import Employee from '../models/Employee.js';
 import Department from '../models/Department.js';

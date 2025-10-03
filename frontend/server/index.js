@@ -10,6 +10,7 @@ import authRouter from './routes/auth.js';
 import departmentRouter from './routes/department.js';
 import employeeRouter from './routes/employee.js';
 import salaryRouter from './routes/salary.js';
+import leaveRouter from './routes/leave.js';
 
 // Connect to database
 connectToDatabase();
@@ -34,6 +35,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/departments', departmentRouter);
 app.use('/api/employees', employeeRouter);
 app.use('/api/salary', salaryRouter);
+app.use('/api/leaves', leaveRouter);
 
 // Health check route
 app.get('/', (req, res) => {
@@ -45,7 +47,8 @@ app.get('/', (req, res) => {
       auth: '/api/auth',
       departments: '/api/departments',
       employees: '/api/employees',
-      salary: '/api/salary'
+      salary: '/api/salary',
+      leaves: '/api/leaves'
     }
   });
 });
@@ -98,6 +101,7 @@ app.listen(PORT, () => {
   console.log(`  Departments: http://localhost:${PORT}/api/departments`);
   console.log(`  Employees: http://localhost:${PORT}/api/employees`);
   console.log(`  Salary: http://localhost:${PORT}/api/salary`);
+  console.log(`  Leaves: http://localhost:${PORT}/api/leaves`);
   console.log('=================================');
 });
 

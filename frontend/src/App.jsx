@@ -14,6 +14,8 @@ import DepartmentList from "../src/components/department/departmentList";
 import AddDepartmentList from "../src/components/department/AddDepartment";
 import ChangePassword from "../src/components/setting/ChangePassword";
 import EmployeeProfile from './components/EmployeeDashboard/Profile';
+import LeaveApply from "./components/leave/Apply";  // ✅ Changed from "Leave" to "LeaveApply"
+
 
 function App() {   
   return (            
@@ -117,7 +119,8 @@ function App() {
           </RoleBaseRoutes>
         </PrivateRoutes>
       } />
-            {/* Employee Dashboard */}
+      
+      {/* Employee Dashboard */}
       <Route path='/employee-dashboard' element={
         <PrivateRoutes>
           <RoleBaseRoutes requiredRole={["employee"]}>
@@ -126,15 +129,27 @@ function App() {
         </PrivateRoutes>
       }/>
        
-       {/* {employee-myProfile} */}
-<Route path="/employee-dashboard/profile/:id" element={
-  <PrivateRoutes>
-    <RoleBaseRoutes requiredRole={["employee"]}>
-      <EmployeeProfile />
-    </RoleBaseRoutes>
-  </PrivateRoutes>
-} />
-      
+      {/* Employee Profile */}
+      <Route path="/employee-dashboard/profile/:id" element={
+        <PrivateRoutes>
+          <RoleBaseRoutes requiredRole={["employee"]}>
+            <EmployeeProfile />
+          </RoleBaseRoutes>
+        </PrivateRoutes>
+      } />
+
+      {/* Employee Leave */}
+      <Route 
+        path="/employee-dashboard/leave/:id" 
+        element={
+          <PrivateRoutes>  
+            <RoleBaseRoutes requiredRole={["employee"]}>
+              <LeaveApply />
+            </RoleBaseRoutes>
+          </PrivateRoutes>
+        } 
+      />
+
       <Route path="*" element={
         <div className="flex items-center justify-center min-h-screen bg-gray-100">
           <div className="text-center p-8 bg-white rounded-lg shadow-md">

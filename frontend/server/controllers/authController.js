@@ -58,7 +58,7 @@ const login = async (req, res) => {
             });
         }
 
-        console.log('✅ User found:', {
+        console.log('User found:', {
             id: user._id,
             name: user.name,
             email: user.email,
@@ -79,12 +79,12 @@ const login = async (req, res) => {
             });
         }
 
-        console.log('✅ Password matches!');
+        console.log('Password matches!');
 
         // Find associated employee if role is employee
         let employeeId = null;
         if (user.role === 'employee') {
-            console.log('🔍 Finding employee document for user ID:', user._id);
+            console.log('Finding employee document for user ID:', user._id);
             const employee = await Employee.findOne({ user: user._id });
             if (employee) {
                 employeeId = employee._id;
@@ -93,7 +93,7 @@ const login = async (req, res) => {
                 console.log('  Employee ID (in Employee collection):', employeeId);
                 console.log('   Employee Name:', employee.name);
             } else {
-                console.log('⚠️  WARNING: No employee document found for this user!');
+                console.log('  WARNING: No employee document found for this user!');
                 console.log('   This user has role "employee" but no Employee document exists.');
                 console.log('   Please create an employee record for this user.');
             }
@@ -101,11 +101,11 @@ const login = async (req, res) => {
 
         // Check for JWT_SECRET
         if (!process.env.JWT_SECRET) {
-            console.warn('⚠️  WARNING: JWT_SECRET not set in .env file! Using fallback.');
+            console.warn('WARNING: JWT_SECRET not set in .env file! Using fallback.');
         }
 
         // Generate JWT
-        console.log('🎫 Generating JWT token...');
+        console.log(' Generating JWT token...');
         const token = jwt.sign(
             { 
                 _id: user._id, 
@@ -123,16 +123,16 @@ const login = async (req, res) => {
             success: true,
             token,
             user: {
-                _id: user._id,           // This is the User document ID
+                _id: user._id,           
                 name: user.name,
                 email: user.email,
                 role: user.role,
-                employeeId: employeeId   // This is the Employee document ID
+                employeeId: employeeId   
             }
         });
         
     } catch (error) {
-        console.error('❌ LOGIN ERROR:', error);
+        console.error(' LOGIN ERROR:', error);
         console.error('Error stack:', error.stack);
         res.status(500).json({ 
             success: false, 
@@ -146,7 +146,7 @@ const register = async (req, res) => {
     try {
         const { name, email, password, role } = req.body;
 
-        console.log('\n📝 ===== REGISTRATION PROCESS START =====');
+        console.log('\n ===== REGISTRATION PROCESS START =====');
         console.log('Data received:', { 
             name, 
             email, 
@@ -156,7 +156,7 @@ const register = async (req, res) => {
 
         // Validate required fields
         if (!name || !email || !password || !role) {
-            console.log('❌ Missing required fields');
+            console.log(' Missing required fields');
             return res.status(400).json({
                 success: false,
                 error: "All fields are required"
@@ -165,7 +165,7 @@ const register = async (req, res) => {
 
         // Validate role
         if (!['admin', 'employee'].includes(role.toLowerCase())) {
-            console.log('❌ Invalid role:', role);
+            console.log(' Invalid role:', role);
             return res.status(400).json({
                 success: false,
                 error: "Role must be either 'admin' or 'employee'"
@@ -173,10 +173,10 @@ const register = async (req, res) => {
         }
 
         // Check if user already exists
-        console.log('🔍 Checking if user exists...');
+        console.log(' Checking if user exists...');
         const existingUser = await User.findOne({ email: email.toLowerCase() });
         if (existingUser) {
-            console.log('❌ User already exists:', email);
+            console.log(' User already exists:', email);
             return res.status(409).json({
                 success: false,
                 error: "User with this email already exists"
@@ -192,7 +192,7 @@ const register = async (req, res) => {
         console.log(' Password hashed');
 
         // Create new user
-        console.log('💾 Creating user in database...');
+        console.log(' Creating user in database...');
         const newUser = new User({
             name: name.trim(),
             email: email.toLowerCase().trim(),
@@ -202,10 +202,10 @@ const register = async (req, res) => {
 
         // Save user to database
         await newUser.save();
-        console.log('✅ User saved to database');
+        console.log(' User saved to database');
 
         // Generate JWT token
-        console.log('🎫 Generating JWT token...');
+        console.log(' Generating JWT token...');
         const token = jwt.sign(
             {
                 _id: newUser._id,
@@ -231,7 +231,7 @@ const register = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ REGISTRATION ERROR:', error);
+        console.error('REGISTRATION ERROR:', error);
         console.error('Error stack:', error.stack);
         
         if (error.code === 11000) {
@@ -251,7 +251,7 @@ const register = async (req, res) => {
 // Logout controller
 const logout = async (req, res) => {
     try {
-        console.log('👋 User logging out:', req.user?.email);
+        console.log(' User logging out:', req.user?.email);
         
         // Client-side should remove the token
         res.status(200).json({
@@ -270,7 +270,7 @@ const logout = async (req, res) => {
 // Verify token (GET route)
 const verifyToken = async (req, res) => {
     try {
-        console.log('🔍 Token verified for:', req.user?.email);
+        console.log(' Token verified for:', req.user?.email);
         
         // req.user is already set by verifyUser middleware
         res.json({

@@ -292,7 +292,7 @@ const passwordController = {
         } : null,
         reason: record.reason,
         createdAt: record.createdAt,
-        ipAddress: record.ipAddress ? record.ipAddress.substring(0, 10) + '...' : null // Partial IP for privacy
+        ipAddress: record.ipAddress ? record.ipAddress.substring(0, 10) + '...' : null 
       }));
 
       res.status(200).json({

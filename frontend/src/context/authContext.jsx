@@ -1,17 +1,18 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+// Define action types
+const LOGIN_SUCCESS = 'LOGIN_SUCCESS';
+const LOGIN_FAILURE = 'LOGIN_FAILURE';
+const LOGOUT = 'LOGOUT';
+const CHECK_AUTH = 'CHECK_AUTH';
+
 const initialState = {
     user: null,
     token: null,
     isAuthenticated: false,
     isLoading: true,
 };
-
-const LOGIN_SUCCESS = 'LOGIN_SUCCESS';
-const LOGIN_FAILURE = 'LOGIN_FAILURE';
-const LOGOUT = 'LOGOUT';
-const CHECK_AUTH = 'CHECK_AUTH';
 
 const authReducer = (state, action) => {
     switch (action.type) {

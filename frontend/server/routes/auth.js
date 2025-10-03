@@ -5,19 +5,15 @@ import passwordController from '../controllers/passwordController.js';
 
 const router = Router();
 
-// =============================================================================
-// PUBLIC ROUTES (No authentication required)
-// =============================================================================
 
-// Test route to verify routes are working
 router.get('/test', (req, res) => {
-    console.log('✅ Auth routes test endpoint hit');
+    console.log('Auth routes test endpoint hit');
     res.json({ success: true, message: 'Auth routes are working' });
 });
 
 // Authentication
 router.post('/login', (req, res, next) => {
-    console.log('🔐 Login attempt:', {
+    console.log(' Login attempt:', {
         email: req.body?.email,
         hasPassword: !!req.body?.password,
         body: Object.keys(req.body || {})
@@ -26,7 +22,7 @@ router.post('/login', (req, res, next) => {
 }, login);
 
 router.post('/register', (req, res, next) => {
-    console.log('📝 Registration attempt:', {
+    console.log('Registration attempt:', {
         email: req.body?.email,
         body: Object.keys(req.body || {})
     });
@@ -41,9 +37,7 @@ router.post('/validate-strength', passwordController.validatePasswordStrength);
 // Password policy information (public)
 router.get('/password-policy', passwordController.getPasswordPolicy);
 
-// =============================================================================
-// PROTECTED ROUTES (Authentication required)
-// =============================================================================
+
 
 // Token verification
 router.get('/verify', (req, res, next) => {
@@ -64,9 +58,8 @@ router.put('/change-password', verifyUser, passwordController.changePassword);
 router.get('/password-history', verifyUser, passwordController.getPasswordHistory);
 router.get('/check-password-expiry', verifyUser, passwordController.checkPasswordExpiry);
 
-// =============================================================================
 // ADMIN ROUTES (Admin authentication required)
-// =============================================================================
+
 
 // Employee password management
 router.put('/reset-employee-password', verifyUser, adminMiddleware, passwordController.resetEmployeePassword);
@@ -75,6 +68,6 @@ router.post('/bulk-password-reset', verifyUser, adminMiddleware, passwordControl
 // Password policy management
 router.put('/password-policy', verifyUser, adminMiddleware, passwordController.updatePasswordPolicy);
 
-console.log('✅ Auth & Password routes registered');
+console.log('Auth & Password routes registered');
 
 export default router;

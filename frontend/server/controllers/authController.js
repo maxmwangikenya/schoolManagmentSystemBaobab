@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
+import Employee from '../models/Employee.js';
 import bcrypt from 'bcrypt';
 
 // Check if email exists
@@ -34,13 +35,10 @@ const login = async (req, res) => {
     try {
         const { email, password } = req.body;
         
-        console.log('\n🔐 ===== LOGIN PROCESS START =====');
-        console.log('📧 Email received:', email);
-        console.log('🔑 Password received:', password ? `Yes (${password.length} chars)` : 'No');
         
         // Validate input
         if (!email || !password) {
-            console.log('❌ Missing email or password');
+            console.log('Missing email or password');
             return res.status(400).json({ 
                 success: false, 
                 error: "Email and password are required" 
@@ -48,12 +46,12 @@ const login = async (req, res) => {
         }
         
         // Find user
-        console.log('🔍 Searching for user in database...');
+        console.log('Searching for user in database...');
         const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
         
         if (!user) {
-            console.log('❌ User not found in database:', email);
-            console.log('💡 TIP: Make sure this user exists. Run the createTestUser.js script.');
+            console.log('User not found in database:', email);
+            console.log('TIP: Make sure this user exists. Run the createTestUser.js script.');
             return res.status(401).json({ 
                 success: false, 
                 error: "Invalid credentials" 
@@ -69,12 +67,12 @@ const login = async (req, res) => {
         });
 
         // Verify password
-        console.log('🔐 Comparing passwords...');
+        console.log('Comparing passwords...');
         const isMatch = await bcrypt.compare(password, user.password);
         
         if (!isMatch) {
-            console.log('❌ Password does not match for:', email);
-            console.log('💡 TIP: Password in database might be different. Try resetting it.');
+            console.log('Password does not match for:', email);
+            console.log('TIP: Password in database might be different. Try resetting it.');
             return res.status(401).json({ 
                 success: false, 
                 error: "Invalid credentials" 
@@ -82,6 +80,24 @@ const login = async (req, res) => {
         }
 
         console.log('✅ Password matches!');
+
+        // Find associated employee if role is employee
+        let employeeId = null;
+        if (user.role === 'employee') {
+            console.log('🔍 Finding employee document for user ID:', user._id);
+            const employee = await Employee.findOne({ user: user._id });
+            if (employee) {
+                employeeId = employee._id;
+                console.log('Employee document found!');
+                console.log('   User ID (in User collection):', user._id);
+                console.log('  Employee ID (in Employee collection):', employeeId);
+                console.log('   Employee Name:', employee.name);
+            } else {
+                console.log('⚠️  WARNING: No employee document found for this user!');
+                console.log('   This user has role "employee" but no Employee document exists.');
+                console.log('   Please create an employee record for this user.');
+            }
+        }
 
         // Check for JWT_SECRET
         if (!process.env.JWT_SECRET) {
@@ -100,22 +116,18 @@ const login = async (req, res) => {
             { expiresIn: "10d" }
         );
 
-        console.log('✅ Login successful!');
-        console.log('👤 User:', user.name);
-        console.log('📧 Email:', user.email);
-        console.log('🎭 Role:', user.role);
-        console.log('🎫 Token generated (first 20 chars):', token.substring(0, 20) + '...');
-        console.log('===== LOGIN PROCESS END =====\n');
+
 
         // Send response
         res.status(200).json({
             success: true,
             token,
             user: {
-                _id: user._id,
+                _id: user._id,           // This is the User document ID
                 name: user.name,
                 email: user.email,
-                role: user.role
+                role: user.role,
+                employeeId: employeeId   // This is the Employee document ID
             }
         });
         
@@ -171,13 +183,13 @@ const register = async (req, res) => {
             });
         }
 
-        console.log('✅ Email is available');
+        console.log(' Email is available');
 
         // Hash password
-        console.log('🔐 Hashing password...');
+        console.log(' Hashing password...');
         const saltRounds = 12;
         const hashedPassword = await bcrypt.hash(password, saltRounds);
-        console.log('✅ Password hashed');
+        console.log(' Password hashed');
 
         // Create new user
         console.log('💾 Creating user in database...');
@@ -204,11 +216,7 @@ const register = async (req, res) => {
             { expiresIn: "10d" }
         );
 
-        console.log('✅ Registration successful!');
-        console.log('👤 User:', newUser.name);
-        console.log('📧 Email:', newUser.email);
-        console.log('🎭 Role:', newUser.role);
-        console.log('===== REGISTRATION PROCESS END =====\n');
+
 
         // Send success response
         res.status(201).json({

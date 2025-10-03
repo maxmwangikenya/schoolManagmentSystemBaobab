@@ -1,5 +1,4 @@
-import React from 'react'
-import AdminSidebar from './AdminSidebar' // Make sure to import AdminSidebar
+import React from 'react' // Make sure to import AdminSidebar
 import Navbar from '../components/dashboard/Navbar'
 import { Outlet } from 'react-router-dom'
 import Sidebar from '../components/EmployeeDashboard/Sidebar'// Make sure to import Navbar

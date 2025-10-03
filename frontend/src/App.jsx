@@ -2,6 +2,7 @@ import React from 'react';
 import { Routes, Route, Navigate } from "react-router-dom"; 
 import Login from "./pages/Login"; 
 import AdminDashboard from "./pages/AdminDashboard"; 
+import EmployeeDashboard from './pages/EmployeeDashboard';
 import Register from "./pages/Register"; 
 import PrivateRoutes from './utils/PrivateRoutes'; 
 import RoleBaseRoutes from './utils/RoleBaseRoutes'; 
@@ -11,7 +12,8 @@ import AddSalary from '../src/components/salary/Add';
 import SalaryList from '../src/components/salary/List';   
 import DepartmentList from "../src/components/department/departmentList"; 
 import AddDepartmentList from "../src/components/department/AddDepartment";
-import ChangePassword from "../src/components/setting/ChangePassword"; // New import
+import ChangePassword from "../src/components/setting/ChangePassword";
+import EmployeeProfile from './components/EmployeeDashboard/Profile';
 
 function App() {   
   return (            
@@ -19,6 +21,8 @@ function App() {
       <Route path="/" element={<Navigate to="/admin-dashboard" />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      
+      {/* Admin Dashboard */}
       <Route path="/admin-dashboard" element={
         <PrivateRoutes>
           <RoleBaseRoutes requiredRole={["admin"]}>
@@ -27,6 +31,7 @@ function App() {
         </PrivateRoutes>
       } />
       
+
       {/* Employee Routes */}
       <Route path="/admin-dashboard/employees" element={
         <PrivateRoutes>
@@ -87,7 +92,16 @@ function App() {
         </PrivateRoutes>
       } />
       
-      {/* Settings Routes (optional - if you want a dedicated settings section) */}
+      {/* Employee Change Password */}
+      <Route path="/employee-dashboard/change-password" element={
+        <PrivateRoutes>
+          <RoleBaseRoutes requiredRole={["admin", "employee"]}>
+            <ChangePassword />
+          </RoleBaseRoutes>
+        </PrivateRoutes>
+      } />
+      
+      {/* Settings Routes */}
       <Route path="/admin-dashboard/settings" element={
         <PrivateRoutes>
           <RoleBaseRoutes requiredRole={["admin"]}>
@@ -103,6 +117,23 @@ function App() {
           </RoleBaseRoutes>
         </PrivateRoutes>
       } />
+            {/* Employee Dashboard */}
+      <Route path='/employee-dashboard' element={
+        <PrivateRoutes>
+          <RoleBaseRoutes requiredRole={["employee"]}>
+            <EmployeeDashboard />  
+          </RoleBaseRoutes>
+        </PrivateRoutes>
+      }/>
+       
+       {/* {employee-myProfile} */}
+<Route path="/employee-dashboard/profile/:id" element={
+  <PrivateRoutes>
+    <RoleBaseRoutes requiredRole={["employee"]}>
+      <EmployeeProfile />
+    </RoleBaseRoutes>
+  </PrivateRoutes>
+} />
       
       <Route path="*" element={
         <div className="flex items-center justify-center min-h-screen bg-gray-100">

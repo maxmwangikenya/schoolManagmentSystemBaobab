@@ -5,8 +5,8 @@ import { addDepartment, getDepartments, updateDepartment, deleteDepartment } fro
 const router = express.Router();
 
 router.post('/add', verifyUser, addDepartment);
-router.get('/', verifyUser, getDepartments);              // Changed from '/add' to '/'
-router.put('/:id', verifyUser, updateDepartment);         // Changed from PATCH to PUT and fixed route
-router.delete('/:id', verifyUser, deleteDepartment);      // Fixed route
+router.get('/', verifyUser, getDepartments);             
+router.put('/:id', verifyUser, updateDepartment);         
+router.delete('/:id', verifyUser, deleteDepartment);      
 
 export default router;

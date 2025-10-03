@@ -275,7 +275,7 @@ const List = () => {
                   <p className="text-gray-600">Manage your organization's employees ({employees.length} total)</p>
                 </div>
                 <Link
-                  to="/admin-dashboard/add-employee"
+                  to="/admin-dashboard/employees/add"
                   className="px-6 py-3 bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 rounded-lg text-white font-medium transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 flex items-center gap-2"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

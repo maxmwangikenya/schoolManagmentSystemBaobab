@@ -16,7 +16,7 @@ const AdminSidebar = () => {
     { to: '/admin-dashboard', icon: FaTachometerAlt, label: 'Dashboard' },
     { to: '/admin-dashboard/employees', icon: FaUsers, label: 'Employees' },
     { to: '/admin-dashboard/departments', icon: FaBuilding, label: 'Departments' },
-    { to: '/leaves', icon: FaFileAlt, label: 'Leave Management' },
+    { to: '/employee-dashboard', icon: FaFileAlt, label: 'Leave Management' },
     { to: '/admin-dashboard/salary', icon: FaMoneyBillWave, label: 'salary' },
     { to: '/reports', icon: FaChartBar, label: 'Reports' },
     { to: '/attendance', icon: FaCalendarCheck, label: 'Attendance' },

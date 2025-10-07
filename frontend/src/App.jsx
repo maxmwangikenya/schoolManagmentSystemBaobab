@@ -10,7 +10,7 @@ import EmployeeList from '../src/components/employees/List'
 import Add from '../src/components/employees/Add'; 
 import AddSalary from '../src/components/salary/Add'; 
 import SalaryList from '../src/components/salary/List';   
-import DepartmentList from "../src/components/department/departmentList"; 
+import DepartmentList from "../src/components/department/DepartmentList"; 
 import AddDepartmentList from "../src/components/department/AddDepartment";
 import ChangePassword from "../src/components/setting/ChangePassword";
 import EmployeeProfile from './components/EmployeeDashboard/Profile';

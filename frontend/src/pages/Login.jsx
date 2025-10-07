@@ -74,7 +74,7 @@ const Login = () => {
                 });
 
                 // Redirect based on role after a short delay
-                setTimeout(() => {
+
                     if (data.user.role === 'admin') {
                         navigate('/admin-dashboard');
                     } else if (data.user.role === 'employee') {
@@ -82,7 +82,6 @@ const Login = () => {
                     } else {
                         navigate('/');
                     }
-                }, 1500);
                 
             } else {
                 throw new Error(data.error || data.message || 'Login failed');

@@ -15,6 +15,7 @@ const DepartmentList = () => {
   
   // Search state
   const [searchTerm, setSearchTerm] = useState('');
+  const API_BASE_URL = import.meta.env.VITE_BACKENDAPI;
   
   // Edit modal states
   const [showEditModal, setShowEditModal] = useState(false);
@@ -59,7 +60,7 @@ const DepartmentList = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:3000/api/departments', {
+      const response = await axios.get(`${API_BASE_URL}/api/departments`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -112,7 +113,7 @@ const DepartmentList = () => {
       const token = localStorage.getItem('token');
       
       const response = await axios.patch(
-        `http://localhost:3000/api/departments/add/${departmentToEdit._id}`, 
+        `${API_BASE_URL}/api/departments/add/${departmentToEdit._id}`, 
         {
           dep_name: editFormData.dep_name.trim(),
           description: editFormData.description.trim()
@@ -173,7 +174,7 @@ const DepartmentList = () => {
       setDeleteLoading(departmentToDelete._id);
       const token = localStorage.getItem('token');
       
-      const response = await axios.delete(`http://localhost:3000/api/departments/add/${departmentToDelete._id}`, {
+      const response = await axios.delete(`${API_BASE_URL}/api/departments/add/${departmentToDelete._id}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

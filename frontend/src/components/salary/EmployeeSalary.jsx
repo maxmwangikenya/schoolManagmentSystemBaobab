@@ -12,7 +12,7 @@ const EmployeeSalary = () => {
   const [error, setError] = useState(null);
   const [showHistory, setShowHistory] = useState(false);
 
-  const API_BASE_URL = 'http://localhost:3000';
+  const API_BASE_URL = import.meta.env.VITE_BACKENDAPI;
 
   useEffect(() => {
     fetchSalaryData();

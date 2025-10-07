@@ -19,7 +19,7 @@ const AddEmployee = () => {
     role: '',
     image: null
   });
-
+  const API_BASE_URL = import.meta.env.VITE_BACKENDAPI;
   const [departments, setDepartments] = useState([]);
   const [imagePreview, setImagePreview] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -31,7 +31,7 @@ const AddEmployee = () => {
       try {
         setLoading(true);
         const token = localStorage.getItem('token');
-        const response = await axios.get('http://localhost:3000/api/departments', {
+        const response = await axios.get(`${API_BASE_URL}/api/departments`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 
@@ -101,7 +101,7 @@ const AddEmployee = () => {
         }
       });
 
-      const response = await axios.post('http://localhost:3000/api/employees/add', submitData, {
+      const response = await axios.post(`${API_BASE_URL}/api/employees/add`, submitData, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'multipart/form-data'

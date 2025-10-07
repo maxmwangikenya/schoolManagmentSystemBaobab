@@ -74,7 +74,7 @@ const Login = () => {
                 });
 
                 // Redirect based on role after a short delay
-
+console.log(data.user)
 if (!data.user || !data.user.role) {
                     throw new Error('User role is undefined. Please contact support.');
                 }

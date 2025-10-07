@@ -20,7 +20,7 @@ const __dirname = path.resolve();
 
 // Middleware
 app.use(cors({
-  origin: 'https://schoolmanagmentsystembaobab.onrender.com'|| 'http://localhost:5173',
+  origin: 'https://school-managment-system-baobab-jvcs.vercel.app'|| 'http://localhost:5173',
   credentials: true
 }));
 

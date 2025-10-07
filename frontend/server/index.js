@@ -19,8 +19,22 @@ const app = express();
 const __dirname = path.resolve();
 
 // Middleware
+const allowedOrigins = [
+  'https://school-managment-system-baobab.vercel.app',
+  'http://localhost:5173',
+  'https://school-managment-system-baobab-jvcs.vercel.app'
+];
+
 app.use(cors({
-  origin: 'https://school-managment-system-baobab.vercel.app'|| 'http://localhost:5173' || 'https://school-managment-system-baobab-jvcs.vercel.app',
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    } else {
+      return callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }));
 

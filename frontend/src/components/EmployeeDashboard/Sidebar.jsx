@@ -18,7 +18,7 @@ const menuItems = [
   { to: '/employee-dashboard', icon: FaTachometerAlt, label: 'Dashboard' },
   { to: `/employee-dashboard/profile/${user.employeeId || user._id}`, icon: FaUsers, label: 'My Profile' },
   { to: `/employee-dashboard/leave/${user.employeeId || user._id}`, icon: FaBuilding, label: 'Leaves' },
-  { to: '/employee-dashboard/salary', icon: FaFileAlt, label: 'Salary' },
+  { to: `/employee-dashboard/salary${user.employeeId || user._id}`, icon: FaFileAlt, label: 'Salary' },
   { to: '/employee-dashboard/settings', icon: FaCog, label: 'Settings' }
 ];
   return (

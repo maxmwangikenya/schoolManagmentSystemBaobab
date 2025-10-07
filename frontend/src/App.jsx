@@ -14,8 +14,8 @@ import DepartmentList from "../src/components/department/departmentList";
 import AddDepartmentList from "../src/components/department/AddDepartment";
 import ChangePassword from "../src/components/setting/ChangePassword";
 import EmployeeProfile from './components/EmployeeDashboard/Profile';
-import LeaveApply from "./components/leave/Apply";  // ✅ Changed from "Leave" to "LeaveApply"
-
+import LeaveApply from "./components/leave/Apply"; 
+import EmployeeSalary from './components/salary/EmployeeSalary';
 
 function App() {   
   return (            
@@ -148,6 +148,17 @@ function App() {
             </RoleBaseRoutes>
           </PrivateRoutes>
         } 
+      />
+      {/* {employee salary} */}
+      <Route
+      path="/employee-dashboard/salary/:id"
+      element={
+        <PrivateRoutes>
+          <RoleBaseRoutes requiredRole={["employee"]}>
+            <Salary/>
+          </RoleBaseRoutes>
+        </PrivateRoutes>
+      }
       />
 
       <Route path="*" element={

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import axios from 'axios';
+import { Calendar, Clock, CheckCircle, XCircle, AlertCircle, Filter, ChevronDown, ChevronUp, History } from 'lucide-react';
 
 const LeaveApply = () => {
   const { id } = useParams();
@@ -10,6 +11,13 @@ const LeaveApply = () => {
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  
+  // Leave History States
+  const [leaves, setLeaves] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [filter, setFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   
   const [formData, setFormData] = useState({
     leaveType: 'casual',
@@ -66,6 +74,102 @@ const LeaveApply = () => {
 
     fetchData();
   }, [id]);
+
+  // Fetch leave history
+  useEffect(() => {
+    if (isHistoryOpen) {
+      fetchLeaveHistory();
+    }
+  }, [id, filter, typeFilter, isHistoryOpen]);
+
+  const fetchLeaveHistory = async () => {
+    try {
+      setHistoryLoading(true);
+      let url = `${API_BASE_URL}/api/leaves/employee/${id}`;
+      const params = new URLSearchParams();
+      
+      if (filter !== 'all') params.append('status', filter);
+      if (typeFilter !== 'all') params.append('leaveType', typeFilter);
+      
+      if (params.toString()) url += `?${params.toString()}`;
+      
+      const token = localStorage.getItem('token');
+      const response = await axios.get(url, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (response.data.success) {
+        setLeaves(response.data.leaves);
+      }
+    } catch (error) {
+      console.error('Error fetching leave history:', error);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const getStatusBadge = (status) => {
+    const badges = {
+      pending: {
+        icon: <Clock className="w-4 h-4" />,
+        bg: 'bg-yellow-100',
+        text: 'text-yellow-800',
+        border: 'border-yellow-300',
+        label: 'Pending'
+      },
+      approved: {
+        icon: <CheckCircle className="w-4 h-4" />,
+        bg: 'bg-green-100',
+        text: 'text-green-800',
+        border: 'border-green-300',
+        label: 'Approved'
+      },
+      rejected: {
+        icon: <XCircle className="w-4 h-4" />,
+        bg: 'bg-red-100',
+        text: 'text-red-800',
+        border: 'border-red-300',
+        label: 'Rejected'
+      }
+    };
+
+    const badge = badges[status] || badges.pending;
+
+    return (
+      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium border ${badge.bg} ${badge.text} ${badge.border}`}>
+        {badge.icon}
+        {badge.label}
+      </span>
+    );
+  };
+
+  const getLeaveTypeBadge = (type) => {
+    const colors = {
+      casual: 'bg-blue-100 text-blue-800 border-blue-300',
+      sick: 'bg-purple-100 text-purple-800 border-purple-300'
+    };
+
+    return (
+      <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${colors[type] || colors.casual}`}>
+        {type.charAt(0).toUpperCase() + type.slice(1)}
+      </span>
+    );
+  };
+
+  const formatDate = (date) => {
+    return new Date(date).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const stats = {
+    total: leaves.length,
+    pending: leaves.filter(l => l.status === 'pending').length,
+    approved: leaves.filter(l => l.status === 'approved').length,
+    rejected: leaves.filter(l => l.status === 'rejected').length
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -131,6 +235,11 @@ const LeaveApply = () => {
         
         if (balanceResponse.data.success) {
           setLeaveBalance(balanceResponse.data.data);
+        }
+
+        // Refresh leave history if it's open
+        if (isHistoryOpen) {
+          fetchLeaveHistory();
         }
 
         // Clear success message after 5 seconds
@@ -204,15 +313,7 @@ const LeaveApply = () => {
 
           {/* Leave Balance with Detailed Breakdown */}
           <div className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50">
-            <div className="flex items-center justify-between mb-4">
-              <h4 className="text-lg font-bold text-gray-800">Leave Balance</h4>
-              <Link 
-                to={`/employee-dashboard/leave-history/${id}`}
-                className="text-sm text-indigo-600 hover:text-indigo-800 font-medium"
-              >
-                View History →
-              </Link>
-            </div>
+            <h4 className="text-lg font-bold text-gray-800 mb-4">Leave Balance</h4>
             <div className="grid grid-cols-2 gap-4">
               {/* Casual Leave */}
               <div className="bg-white p-4 rounded-xl shadow-sm border-l-4 border-green-500">
@@ -265,6 +366,232 @@ const LeaveApply = () => {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* VIEW HISTORY SECTION - Expandable */}
+        <div className="mb-6">
+          <button
+            onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+            className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg p-4 shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-between group"
+          >
+            <div className="flex items-center gap-3">
+              <History className="w-6 h-6" />
+              <div className="text-left">
+                <h3 className="font-semibold text-lg">View Leave History</h3>
+                <p className="text-sm text-blue-100">
+                  {isHistoryOpen ? 'Click to hide your leave records' : 'Click to view all your leave applications'}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {!isHistoryOpen && leaves.length > 0 && (
+                <span className="bg-white text-blue-600 px-3 py-1 rounded-full text-sm font-bold">
+                  {leaves.length}
+                </span>
+              )}
+              {isHistoryOpen ? (
+                <ChevronUp className="w-6 h-6 transition-transform group-hover:scale-110" />
+              ) : (
+                <ChevronDown className="w-6 h-6 transition-transform group-hover:scale-110" />
+              )}
+            </div>
+          </button>
+
+          {/* Expandable History Section */}
+          {isHistoryOpen && (
+            <div className="mt-4 bg-gray-50 rounded-lg p-6 border border-gray-200 animate-fadeIn">
+              {historyLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                </div>
+              ) : (
+                <>
+                  {/* Statistics Cards */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div className="bg-white rounded-lg shadow p-4 border-l-4 border-blue-500">
+                      <div className="text-xs text-gray-600">Total</div>
+                      <div className="text-2xl font-bold text-gray-800">{stats.total}</div>
+                    </div>
+                    <div className="bg-white rounded-lg shadow p-4 border-l-4 border-yellow-500">
+                      <div className="text-xs text-gray-600">Pending</div>
+                      <div className="text-2xl font-bold text-yellow-600">{stats.pending}</div>
+                    </div>
+                    <div className="bg-white rounded-lg shadow p-4 border-l-4 border-green-500">
+                      <div className="text-xs text-gray-600">Approved</div>
+                      <div className="text-2xl font-bold text-green-600">{stats.approved}</div>
+                    </div>
+                    <div className="bg-white rounded-lg shadow p-4 border-l-4 border-red-500">
+                      <div className="text-xs text-gray-600">Rejected</div>
+                      <div className="text-2xl font-bold text-red-600">{stats.rejected}</div>
+                    </div>
+                  </div>
+
+                  {/* Filters */}
+                  <div className="bg-white rounded-lg shadow p-4 mb-6">
+                    <div className="flex items-center gap-4 flex-wrap">
+                      <div className="flex items-center gap-2">
+                        <Filter className="w-5 h-5 text-gray-600" />
+                        <span className="font-medium text-gray-700">Filters:</span>
+                      </div>
+                      
+                      <div className="flex gap-2 flex-wrap">
+                        <button
+                          onClick={() => setFilter('all')}
+                          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+                            filter === 'all'
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          }`}
+                        >
+                          All Status
+                        </button>
+                        <button
+                          onClick={() => setFilter('pending')}
+                          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+                            filter === 'pending'
+                              ? 'bg-yellow-600 text-white'
+                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          }`}
+                        >
+                          Pending
+                        </button>
+                        <button
+                          onClick={() => setFilter('approved')}
+                          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+                            filter === 'approved'
+                              ? 'bg-green-600 text-white'
+                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          }`}
+                        >
+                          Approved
+                        </button>
+                        <button
+                          onClick={() => setFilter('rejected')}
+                          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+                            filter === 'rejected'
+                              ? 'bg-red-600 text-white'
+                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          }`}
+                        >
+                          Rejected
+                        </button>
+                      </div>
+
+                      <div className="flex gap-2 flex-wrap ml-auto">
+                        <button
+                          onClick={() => setTypeFilter('all')}
+                          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+                            typeFilter === 'all'
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          }`}
+                        >
+                          All Types
+                        </button>
+                        <button
+                          onClick={() => setTypeFilter('casual')}
+                          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+                            typeFilter === 'casual'
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          }`}
+                        >
+                          Casual
+                        </button>
+                        <button
+                          onClick={() => setTypeFilter('sick')}
+                          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+                            typeFilter === 'sick'
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          }`}
+                        >
+                          Sick
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Leave History List */}
+                  {leaves.length === 0 ? (
+                    <div className="bg-white rounded-lg shadow p-12 text-center">
+                      <AlertCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-xl font-semibold text-gray-800 mb-2">No Leave Records Found</h3>
+                      <p className="text-gray-600">
+                        {filter !== 'all' || typeFilter !== 'all'
+                          ? 'No leaves found matching your filters.'
+                          : "You haven't applied for any leaves yet."}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
+                      {leaves.map((leave) => (
+                        <div
+                          key={leave._id}
+                          className="bg-white rounded-lg shadow hover:shadow-lg transition p-5 border border-gray-200"
+                        >
+                          <div className="flex items-start justify-between mb-4">
+                            <div className="flex items-center gap-3">
+                              <Calendar className="w-5 h-5 text-blue-600" />
+                              <div>
+                                <h3 className="font-semibold text-base text-gray-800">
+                                  {formatDate(leave.startDate)} - {formatDate(leave.endDate)}
+                                </h3>
+                                <p className="text-xs text-gray-600">
+                                  Applied on {formatDate(leave.appliedDate)}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex gap-2 flex-wrap justify-end">
+                              {getLeaveTypeBadge(leave.leaveType)}
+                              {getStatusBadge(leave.status)}
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div>
+                              <span className="text-sm font-medium text-gray-600">Duration:</span>
+                              <span className="ml-2 text-sm text-gray-800 font-semibold">
+                                {leave.days} {leave.days === 1 ? 'day' : 'days'}
+                              </span>
+                            </div>
+                            {leave.reviewedBy && leave.reviewedDate && (
+                              <div>
+                                <span className="text-sm font-medium text-gray-600">Reviewed on:</span>
+                                <span className="ml-2 text-sm text-gray-800">
+                                  {formatDate(leave.reviewedDate)}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="mb-4">
+                            <span className="text-sm font-medium text-gray-600 block mb-1">Reason:</span>
+                            <p className="text-sm text-gray-800 bg-gray-50 p-3 rounded border border-gray-200">
+                              {leave.reason}
+                            </p>
+                          </div>
+
+                          {leave.reviewComments && (
+                            <div className={`p-3 rounded border ${
+                              leave.status === 'approved' 
+                                ? 'bg-green-50 border-green-200' 
+                                : 'bg-red-50 border-red-200'
+                            }`}>
+                              <span className="text-sm font-medium text-gray-700 block mb-1">
+                                {leave.status === 'approved' ? '✓' : '✗'} Review Comments:
+                              </span>
+                              <p className="text-sm text-gray-800">{leave.reviewComments}</p>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Leave Application Form */}
@@ -418,6 +745,22 @@ const LeaveApply = () => {
           </form>
         </div>
       </div>
+
+      <style jsx>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .animate-fadeIn {
+          animation: fadeIn 0.3s ease-out;
+        }
+      `}</style>
     </div>
   );
 };

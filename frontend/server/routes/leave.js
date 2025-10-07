@@ -13,15 +13,6 @@ import {
 } from '../controllers/leaveController.js';
 import authMiddleware from '../middleware/authMiddleware.js';
 
-console.log('=== IMPORT DEBUG ===');
-console.log('applyLeave:', typeof applyLeave, applyLeave);
-console.log('getLeaveBalance:', typeof getLeaveBalance, getLeaveBalance);
-console.log('getEmployeeLeaves:', typeof getEmployeeLeaves);
-console.log('getAllLeaves:', typeof getAllLeaves);
-console.log('getLeaveById:', typeof getLeaveById);
-console.log('reviewLeave:', typeof reviewLeave);
-console.log('cancelLeave:', typeof cancelLeave);
-console.log('getLeaveStats:', typeof getLeaveStats);
 
 const router = express.Router();
 

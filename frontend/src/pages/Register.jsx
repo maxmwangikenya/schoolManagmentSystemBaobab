@@ -15,11 +15,11 @@ const Register = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [errors, setErrors] = useState({});
     const navigate = useNavigate();
-
+  const API_BASE_URL = import.meta.env.VITE_BACKENDAPI;
     // Registration function
     const authRegister = async (userData) => {
         try {
-            const response = await fetch('http://localhost:3000/api/auth/register', {
+            const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

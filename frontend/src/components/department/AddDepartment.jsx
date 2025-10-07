@@ -25,7 +25,7 @@ const AddDepartment = () => {
     // Clear error when user starts typing
     if (error) setError(null);
   };
-
+  const API_BASE_URL = import.meta.env.VITE_BACKENDAPI;
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -40,7 +40,7 @@ const AddDepartment = () => {
       setError(null);
       
       const token = localStorage.getItem('token');
-      const response = await axios.post('http://localhost:3000/api/departments/add', formData, {
+      const response = await axios.post(`${API_BASE_URL}/api/departments/add`, formData, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

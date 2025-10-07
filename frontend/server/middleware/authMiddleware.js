@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 
-// Verify JWT token middleware
+// Verify JWT token middleware updated.
 export const verifyUser = async (req, res, next) => {
     try {
         const authHeader = req.headers.authorization;

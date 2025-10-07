@@ -26,7 +26,7 @@ const LeaveApply = () => {
     reason: ''
   });
 
-  const API_BASE_URL = 'http://localhost:3000';
+  const API_BASE_URL = import.meta.env.VITE_BACKENDAPI;
 
   // Calculate number of days between two dates
   const calculateLeaveDays = (start, end) => {

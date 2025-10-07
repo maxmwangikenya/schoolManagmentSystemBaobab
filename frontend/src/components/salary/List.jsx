@@ -16,6 +16,7 @@ const List = () => {
   const [salaryHistory, setSalaryHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState(null);
+    const API_BASE_URL = import.meta.env.VITE_BACKENDAPI;
 
   useEffect(() => {
     fetchSalaries();
@@ -25,7 +26,7 @@ const List = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:3000/api/salary', {
+      const response = await axios.get(`${API_BASE_URL}/api/salary`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -47,7 +48,7 @@ const List = () => {
       setHistoryLoading(true);
       setHistoryError(null);
       const token = localStorage.getItem('token');
-      const response = await axios.get(`http://localhost:3000/api/salary/history/${employeeId}`, {
+      const response = await axios.get(`${API_BASE_URL}/api/salary/history/${employeeId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -81,7 +82,7 @@ const List = () => {
     if (window.confirm('Are you sure you want to delete this salary record?')) {
       try {
         const token = localStorage.getItem('token');
-        const response = await axios.delete(`http://localhost:3000/api/salary/${salaryId}`, {
+        const response = await axios.delete(`${API_BASE_URL}/api/salary/${salaryId}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 

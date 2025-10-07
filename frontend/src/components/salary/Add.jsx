@@ -13,6 +13,7 @@ const AddSalary = () => {
     deductions: '',
     payDate: ''
   });
+    const API_BASE_URL = import.meta.env.VITE_BACKENDAPI;
   
   const [employees, setEmployees] = useState([]);
   const [departments, setDepartments] = useState([]);
@@ -35,10 +36,10 @@ const AddSalary = () => {
       
       // Fetch employees and departments in parallel
       const [employeesResponse, departmentsResponse] = await Promise.all([
-        axios.get('http://localhost:3000/api/employees', {
+        axios.get(`${API_BASE_URL}/api/employees`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
-        axios.get('http://localhost:3000/api/departments/add', {
+        axios.get(`${API_BASE_URL}/api/departments/add`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
       ]);
@@ -113,7 +114,7 @@ const AddSalary = () => {
         netSalary: parseFloat(calculateNetSalary())
       };
 
-      const response = await axios.post('http://localhost:3000/api/salary/add', salaryData, {
+      const response = await axios.post(`${API_BASE_URL}/api/salary/add`, salaryData, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

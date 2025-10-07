@@ -4,7 +4,7 @@ import AdminSidebar from '../dashboard/AdminSidebar'
 import Navbar from '../dashboard/Navbar'
 
 // Add base URL for your API
-const API_BASE_URL = 'http://localhost:3000'
+const API_BASE_URL = import.meta.env.VITE_BACKENDAPI;
 
 const List = () => {
   const [employees, setEmployees] = useState([])

@@ -76,6 +76,7 @@ const ChangePassword = () => {
     setErrors({});
     setSuccessMessage('');
   };
+  const API_BASE_URL = import.meta.env.VITE_BACKENDAPI;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -96,7 +97,7 @@ const ChangePassword = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.put('http://localhost:3000/api/auth/change-password', {
+      const response = await axios.put(`${API_BASE_URL}/api/auth/change-password`, {
         currentPassword: formData.currentPassword,
         newPassword: formData.newPassword,
         confirmPassword: formData.confirmPassword

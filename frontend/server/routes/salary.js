@@ -1,6 +1,6 @@
 // routes/salary.js
 import express from 'express';
-import salaryController from '../controllers/salaryController.js';
+import salaryController from '../controllers/salarycontroller.js';
 import { verifyUser } from '../middleware/authMiddleware.js';
 
 const router = express.Router();

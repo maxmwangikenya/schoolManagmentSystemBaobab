@@ -15,7 +15,7 @@ import AddDepartmentList from "../src/components/department/AddDepartment";
 import ChangePassword from "../src/components/setting/ChangePassword";
 import EmployeeProfile from './components/EmployeeDashboard/Profile';
 import LeaveApply from "./components/leave/Apply"; 
-import EmployeeSalary from './components/salary/EmployeeSalary';
+import EmployeeSalary from '../src/components/salary/EmployeeSalary';
 
 function App() {   
   return (            
@@ -155,7 +155,7 @@ function App() {
       element={
         <PrivateRoutes>
           <RoleBaseRoutes requiredRole={["employee"]}>
-            <Salary/>
+            <EmployeeSalary/>
           </RoleBaseRoutes>
         </PrivateRoutes>
       }

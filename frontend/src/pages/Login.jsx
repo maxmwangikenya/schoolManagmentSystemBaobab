@@ -81,9 +81,9 @@ if (!data.user || !data.user.role) {
                 // Redirect based on role after a short delay
 
                     if (data.user.role === 'admin') {
-                        window.location.replace('/admin-dashboard');
+                        window.location.replace('/');
                     } else if (data.user.role === 'employee') {
-                        window.location.replace('/employee-dashboard');
+                        window.location.replace('/');
                     } else {
                         window.location.replace('/');
                     }

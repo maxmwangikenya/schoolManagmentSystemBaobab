@@ -11,7 +11,7 @@ const passwordController = {
   changePassword: async (req, res) => {
     try {
       const { currentPassword, newPassword, confirmPassword } = req.body;
-      const userId = req.user.id;
+      const userId = req.user.id || req.user._id;
 
       // Validation
       if (!currentPassword || !newPassword || !confirmPassword) {
@@ -149,11 +149,104 @@ const passwordController = {
     }
   },
 
+  // ✅ NEW: Admin changes employee password (without current password)
+  adminChangeEmployeePassword: async (req, res) => {
+    try {
+      const { employeeId } = req.params;
+      const { newPassword, confirmPassword } = req.body;
+      const adminId = req.user.id || req.user._id;
+
+      console.log('🔐 Admin changing password for employee:', employeeId);
+      console.log('👤 Requesting admin:', req.user.email);
+
+      // Validation
+      if (!newPassword || !confirmPassword) {
+        return res.status(400).json({
+          success: false,
+          error: 'Please provide new password and confirmation',
+          field: !newPassword ? 'newPassword' : 'confirmPassword'
+        });
+      }
+
+      // Check if passwords match
+      if (newPassword !== confirmPassword) {
+        return res.status(400).json({
+          success: false,
+          error: 'Passwords do not match',
+          field: 'confirmPassword'
+        });
+      }
+
+      // Get current password policy
+      const policy = await PasswordPolicy.getCurrentPolicy();
+      
+      // Validate new password against policy
+      const policyValidation = policy.validatePassword(newPassword);
+      if (!policyValidation.isValid) {
+        return res.status(400).json({
+          success: false,
+          error: policyValidation.errors.join(', '),
+          field: 'newPassword',
+          details: policyValidation
+        });
+      }
+
+      // Find employee
+      const employee = await Employee.findById(employeeId);
+      if (!employee) {
+        return res.status(404).json({
+          success: false,
+          error: 'Employee not found'
+        });
+      }
+
+      // Save current password to history
+      await PasswordHistory.logPasswordChange({
+        userId: employeeId,
+        userModel: 'Employee',
+        oldPasswordHash: employee.password,
+        changeType: 'admin_reset',
+        changedBy: adminId,
+        reason: 'Password changed by administrator',
+        ipAddress: req.ip || req.connection.remoteAddress,
+        userAgent: req.headers['user-agent']
+      });
+
+      // Hash new password
+      const saltRounds = 12;
+      const hashedNewPassword = await bcrypt.hash(newPassword, saltRounds);
+
+      // Update employee password
+      await Employee.findByIdAndUpdate(employeeId, {
+        password: hashedNewPassword,
+        updatedAt: new Date(),
+        passwordResetBy: adminId,
+        passwordResetAt: new Date(),
+        lastPasswordChange: new Date()
+      });
+
+      console.log(`✅ Password updated successfully for ${employee.firstName} ${employee.lastName}`);
+
+      res.status(200).json({
+        success: true,
+        message: `Password changed successfully for ${employee.firstName} ${employee.lastName}`,
+        passwordStrength: policyValidation.score
+      });
+
+    } catch (error) {
+      console.error('❌ Error in admin password change:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to change employee password. Please try again.'
+      });
+    }
+  },
+
   // Reset password by admin (for employees)
   resetEmployeePassword: async (req, res) => {
     try {
       const { employeeId, newPassword, confirmPassword, reason } = req.body;
-      const adminId = req.user.id;
+      const adminId = req.user.id || req.user._id;
 
       // Validation
       if (!employeeId || !newPassword || !confirmPassword) {
@@ -246,7 +339,7 @@ const passwordController = {
   // Get password history
   getPasswordHistory: async (req, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.id || req.user._id;
       const { limit = 10, employeeId } = req.query;
 
       // If employeeId is provided and user is admin, get that employee's history
@@ -380,7 +473,7 @@ const passwordController = {
         specialCharacters,
         notes
       } = req.body;
-      const adminId = req.user.id;
+      const adminId = req.user.id || req.user._id;
 
       // Check if requesting user is admin
       const admin = await User.findById(adminId);
@@ -560,7 +653,7 @@ const passwordController = {
   // Check if user needs to change password
   checkPasswordExpiry: async (req, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.id || req.user._id;
       
       // Find user
       let user = await User.findById(userId);
@@ -612,7 +705,7 @@ const passwordController = {
   bulkPasswordReset: async (req, res) => {
     try {
       const { employeeIds, newPassword, reason } = req.body;
-      const adminId = req.user.id;
+      const adminId = req.user.id || req.user._id;
 
       if (!employeeIds || !Array.isArray(employeeIds) || employeeIds.length === 0) {
         return res.status(400).json({

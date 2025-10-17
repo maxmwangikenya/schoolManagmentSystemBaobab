@@ -1,10 +1,13 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
+import Employee from '../models/Employee.js';
 
-// Verify JWT token middleware updated.
+// Verify JWT token middleware - checks both User and Employee models
 export const verifyUser = async (req, res, next) => {
     try {
         const authHeader = req.headers.authorization;
+        
+
         
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
             return res.status(401).json({
@@ -22,8 +25,18 @@ export const verifyUser = async (req, res, next) => {
             });
         }
 
+        // Verify token
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_key');
-        const user = await User.findById(decoded._id).select('-password');
+        
+
+        
+        // Try to find user in User model first (Admin)
+        let user = await User.findById(decoded._id || decoded.id).select('-password');
+        
+        // If not found in User, try Employee model
+        if (!user) {
+            user = await Employee.findById(decoded._id || decoded.id).select('-password');
+        } 
         
         if (!user) {
             return res.status(401).json({
@@ -32,11 +45,23 @@ export const verifyUser = async (req, res, next) => {
             });
         }
 
-        req.user = user;
+        // Attach user to request with consistent property names
+        req.user = {
+            _id: user._id,
+            id: user._id,
+            email: user.email,
+            role: user.role,
+            name: user.name || `${user.firstName} ${user.lastName}`,
+            firstName: user.firstName,
+            lastName: user.lastName
+        };
+
+
+        
         next();
         
     } catch (error) {
-        console.error('Auth middleware error:', error);
+       
         
         if (error.name === 'JsonWebTokenError') {
             return res.status(401).json({
@@ -61,16 +86,29 @@ export const verifyUser = async (req, res, next) => {
 
 // Admin role check middleware
 export const adminMiddleware = (req, res, next) => {
-    if (req.user && req.user.role === 'admin') {
-        next();
-    } else {
-        return res.status(403).json({
+    console.log('Admin middleware check:', {
+        userId: req.user?._id || req.user?.id,
+        userRole: req.user?.role,
+        isAdmin: req.user?.role?.toLowerCase() === 'admin'
+    });
+
+    if (!req.user) {
+        return res.status(401).json({
             success: false,
-            error: 'Access denied. Admin privileges required.'
+            error: 'Authentication required'
         });
     }
+
+    if (req.user.role?.toLowerCase() !== 'admin') {
+        return res.status(403).json({
+            success: false,
+            error: 'Unauthorized: Admin access required'
+        });
+    }
+
+   
+    next();
 };
-// Keep named exports
 
-
+// Export as default for backward compatibility
 export default verifyUser;

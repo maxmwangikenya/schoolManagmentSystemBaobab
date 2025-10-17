@@ -105,10 +105,8 @@ const login = async (req, res) => {
                 email: user.email
             },
             process.env.JWT_SECRET || 'fallback_secret_key',
-            { expiresIn: "7d" } // ✅ FIXED: Changed from "30m" to "7d" (7 days)
+            { expiresIn: "7d" }
         );
-
-        console.log('✅ Token generated successfully! Valid for 7 days');
 
         // Send response
         res.status(200).json({
@@ -205,12 +203,10 @@ const register = async (req, res) => {
                 email: newUser.email
             },
             process.env.JWT_SECRET || 'fallback_secret_key',
-            { expiresIn: "7d" } // ✅ Changed from "10d" to "7d" for consistency
+            { expiresIn: "7d" } 
         );
 
-        console.log('✅ Token generated successfully! Valid for 7 days');
-
-        // Send success response
+       
         res.status(201).json({
             success: true,
             token,

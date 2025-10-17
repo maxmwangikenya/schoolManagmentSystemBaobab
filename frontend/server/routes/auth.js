@@ -5,7 +5,6 @@ import passwordController from '../controllers/passwordController.js';
 
 const router = Router();
 
-
 router.get('/test', (req, res) => {
     console.log('Auth routes test endpoint hit');
     res.json({ success: true, message: 'Auth routes are working' });
@@ -37,8 +36,6 @@ router.post('/validate-strength', passwordController.validatePasswordStrength);
 // Password policy information (public)
 router.get('/password-policy', passwordController.getPasswordPolicy);
 
-
-
 // Token verification
 router.get('/verify', (req, res, next) => {
     console.log('🔍 Token verification attempt:', {
@@ -58,10 +55,16 @@ router.put('/change-password', verifyUser, passwordController.changePassword);
 router.get('/password-history', verifyUser, passwordController.getPasswordHistory);
 router.get('/check-password-expiry', verifyUser, passwordController.checkPasswordExpiry);
 
-// ADMIN ROUTES (Admin authentication required)
+// ============= ADMIN ROUTES (Admin authentication required) =============
 
+// ✅ NEW: Admin changes any employee's password
+router.put('/admin-change-password/:employeeId', 
+    verifyUser, 
+    adminMiddleware, 
+    passwordController.adminChangeEmployeePassword
+);
 
-// Employee password management
+// Employee password management (existing routes)
 router.put('/reset-employee-password', verifyUser, adminMiddleware, passwordController.resetEmployeePassword);
 router.post('/bulk-password-reset', verifyUser, adminMiddleware, passwordController.bulkPasswordReset);
 

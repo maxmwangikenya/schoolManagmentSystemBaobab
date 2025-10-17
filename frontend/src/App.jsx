@@ -12,19 +12,23 @@ import AddSalary from '../src/components/salary/Add';
 import SalaryList from '../src/components/salary/List';   
 import DepartmentList from "../src/components/department/DepartmentList"; 
 import AddDepartmentList from "../src/components/department/AddDepartment";
-import ChangePassword from "../src/components/setting/ChangePassword";
+import SettingsPasswordManagement from "../src/components/setting/SettingsPasswordManagement"; 
 import EmployeeProfile from './components/EmployeeDashboard/Profile';
 import LeaveApply from "./components/leave/Apply"; 
 import EmployeeSalary from '../src/components/salary/EmployeeSalary';
+import Leave from '../server/models/Leave';
 
 function App() {   
   return (            
     <Routes>
+      {/* ========== PUBLIC ROUTES ========== */}
       <Route path="/" element={<Navigate to="/admin-dashboard" />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       
-      {/* Admin Dashboard */}
+      {/* ========== ADMIN DASHBOARD ROUTES ========== */}
+      
+      {/* Admin Dashboard Home */}
       <Route path="/admin-dashboard" element={
         <PrivateRoutes>
           <RoleBaseRoutes requiredRole={["admin"]}>
@@ -33,8 +37,7 @@ function App() {
         </PrivateRoutes>
       } />
       
-
-      {/* Employee Routes */}
+      {/* Employee Management Routes */}
       <Route path="/admin-dashboard/employees" element={
         <PrivateRoutes>
           <RoleBaseRoutes requiredRole={["admin"]}>
@@ -51,7 +54,7 @@ function App() {
         </PrivateRoutes>
       } />
       
-      {/* Salary Routes */}
+      {/* Salary Management Routes */}
       <Route path="/admin-dashboard/salaries" element={
         <PrivateRoutes>
           <RoleBaseRoutes requiredRole={["admin"]}>
@@ -68,7 +71,7 @@ function App() {
         </PrivateRoutes>
       } />
       
-      {/* Department Routes */}
+      {/* Department Management Routes */}
       <Route path="/admin-dashboard/departments" element={
         <PrivateRoutes>
           <RoleBaseRoutes requiredRole={["admin"]}>
@@ -85,49 +88,25 @@ function App() {
         </PrivateRoutes>
       } />
       
-      {/* Password Management Routes */}
-      <Route path="/admin-dashboard/change-password" element={
-        <PrivateRoutes>
-          <RoleBaseRoutes requiredRole={["admin", "employee"]}>
-            <ChangePassword />
-          </RoleBaseRoutes>
-        </PrivateRoutes>
-      } />
-      
-      {/* Employee Change Password */}
-      <Route path="/employee-dashboard/change-password" element={
-        <PrivateRoutes>
-          <RoleBaseRoutes requiredRole={["admin", "employee"]}>
-            <ChangePassword />
-          </RoleBaseRoutes>
-        </PrivateRoutes>
-      } />
-      
-      {/* Settings Routes */}
+      {/* Admin Settings - Unified Password Management */}
       <Route path="/admin-dashboard/settings" element={
         <PrivateRoutes>
           <RoleBaseRoutes requiredRole={["admin"]}>
-            <ChangePassword />
+            <SettingsPasswordManagement />
           </RoleBaseRoutes>
         </PrivateRoutes>
       } />
       
-      <Route path="/admin-dashboard/settings/password" element={
-        <PrivateRoutes>
-          <RoleBaseRoutes requiredRole={["admin", "employee"]}>
-            <ChangePassword />
-          </RoleBaseRoutes>
-        </PrivateRoutes>
-      } />
+      {/* ========== EMPLOYEE DASHBOARD ROUTES ========== */}
       
-      {/* Employee Dashboard */}
+      {/* Employee Dashboard Home */}
       <Route path='/employee-dashboard' element={
         <PrivateRoutes>
           <RoleBaseRoutes requiredRole={["employee"]}>
             <EmployeeDashboard />  
           </RoleBaseRoutes>
         </PrivateRoutes>
-      }/>
+      } />
        
       {/* Employee Profile */}
       <Route path="/employee-dashboard/profile/:id" element={
@@ -138,29 +117,44 @@ function App() {
         </PrivateRoutes>
       } />
 
-      {/* Employee Leave */}
-      <Route 
-        path="/employee-dashboard/leave/:id" 
-        element={
-          <PrivateRoutes>  
-            <RoleBaseRoutes requiredRole={["employee"]}>
-              <LeaveApply />
-            </RoleBaseRoutes>
-          </PrivateRoutes>
-        } 
-      />
-      {/* {employee salary} */}
-      <Route
-      path="/employee-dashboard/salary/:id"
-      element={
-        <PrivateRoutes>
+      {/* Employee Leave Management */}
+      <Route path="/employee-dashboard/leave/:id" element={
+        <PrivateRoutes>  
           <RoleBaseRoutes requiredRole={["employee"]}>
-            <EmployeeSalary/>
+            <LeaveApply />
           </RoleBaseRoutes>
         </PrivateRoutes>
-      }
-      />
+      } />
+      
+      {/* Employee Salary View */}
+      <Route path="/employee-dashboard/salary/:id" element={
+        <PrivateRoutes>
+          <RoleBaseRoutes requiredRole={["employee"]}>
+            <EmployeeSalary />
+          </RoleBaseRoutes>
+        </PrivateRoutes>
+      } />
+      
+      {/* Employee Settings - Unified Password Management */}
+      <Route path="/employee-dashboard/settings" element={
+        <PrivateRoutes>
+          <RoleBaseRoutes requiredRole={["employee"]}>
+            <SettingsPasswordManagement />
+          </RoleBaseRoutes>
+        </PrivateRoutes>
+      } />
 
+            {/* admin leaves */}
+      <Route path="/admin-dashboard/leaves" element={
+        <PrivateRoutes>
+          <RoleBaseRoutes requiredRole={["admin"]}>
+            <LeaveApply />
+          </RoleBaseRoutes>
+        </PrivateRoutes>
+      } />
+
+
+      {/* ========== 404 & UNAUTHORIZED ROUTE ========== */}
       <Route path="*" element={
         <div className="flex items-center justify-center min-h-screen bg-gray-100">
           <div className="text-center p-8 bg-white rounded-lg shadow-md">

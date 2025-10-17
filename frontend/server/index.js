@@ -9,7 +9,7 @@ import connectToDatabase from './db/db.js';
 import authRouter from './routes/auth.js';
 import departmentRouter from './routes/department.js';
 import employeeRouter from './routes/employee.js';
-import salaryRouter from './routes/salary.js';
+import salaryRouter from './routes/salary.js'; // ✅ ADDED: Salary routes
 import leaveRouter from './routes/leave.js';
 
 // Connect to database
@@ -48,7 +48,7 @@ app.use('/public', express.static(path.join(__dirname, 'public')));
 app.use('/api/auth', authRouter);
 app.use('/api/departments', departmentRouter);
 app.use('/api/employees', employeeRouter);
-app.use('/api/salary', salaryRouter);
+app.use('/api/salary', salaryRouter); // ✅ ADDED: Salary routes
 app.use('/api/leaves', leaveRouter);
 
 // Health check route
@@ -61,7 +61,7 @@ app.get('/', (req, res) => {
       auth: '/api/auth',
       departments: '/api/departments',
       employees: '/api/employees',
-      salary: '/api/salary',
+      salary: '/api/salary', // ✅ ADDED
       leaves: '/api/leaves'
     }
   });
@@ -114,7 +114,12 @@ app.listen(PORT, () => {
   console.log(`  Auth: http://localhost:${PORT}/api/auth`);
   console.log(`  Departments: http://localhost:${PORT}/api/departments`);
   console.log(`  Employees: http://localhost:${PORT}/api/employees`);
-  console.log(`  Salary: http://localhost:${PORT}/api/salary`);
+  console.log(`  Salary: http://localhost:${PORT}/api/salary`); // ✅ ADDED
+  console.log(`    ├─ Get all salaries: GET /api/salary`);
+  console.log(`    ├─ Add salary: POST /api/salary/add`);
+  console.log(`    ├─ Salary history: GET /api/salary/history/:employeeId`);
+  console.log(`    ├─ Salary summary: GET /api/salary/summary/:employeeId`);
+  console.log(`    └─ Department stats: GET /api/salary/department/:departmentId/stats`);
   console.log(`  Leaves: http://localhost:${PORT}/api/leaves`);
   console.log('=================================');
 });

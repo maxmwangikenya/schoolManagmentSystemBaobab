@@ -45,7 +45,8 @@ const authReducer = (state, action) => {
 
 const AuthContext = createContext();
 
-export const useAuth = () => {
+// Move useAuth hook definition here, after AuthContext is created
+const useAuth = () => {
     const context = useContext(AuthContext);
     if (!context) {
         throw new Error('useAuth must be used within an AuthProvider');
@@ -80,7 +81,8 @@ const AuthProvider = ({ children }) => {
             dispatch({ type: CHECK_AUTH });
         }
     }, []);
-      const API_BASE_URL = import.meta.env.VITE_BACKENDAPI;
+
+    const API_BASE_URL = import.meta.env.VITE_BACKENDAPI;
 
     const login = async (email, password) => {
         try {
@@ -147,4 +149,6 @@ const AuthProvider = ({ children }) => {
     );
 };
 
+// Export both at the bottom
+export { useAuth };
 export default AuthProvider;

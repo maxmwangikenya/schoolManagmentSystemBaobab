@@ -156,6 +156,7 @@ const salaryController = {
   getSalaryById: async (req, res) => {
     try {
       const { id } = req.params;
+      //check ifuser is admin || user Id or passed id is same.
       
       const salary = await Salary.findById(id)
         .populate('employeeId', 'firstName lastName employeeId position')

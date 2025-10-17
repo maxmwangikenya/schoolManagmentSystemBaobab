@@ -1,692 +1,423 @@
-// AdminDashboard.jsx
-import React, { useState } from 'react';
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/authContext';
-import AdminSidebar from '../components/dashboard/AdminSidebar';
-import { FaUserCircle, FaSignOutAlt, FaBell, FaCalendarPlus, FaList, FaTimes } from 'react-icons/fa';
+import {
+  Users,
+  CheckCircle,
+  Clock,
+  Building,
+  TrendingUp,
+  Activity,
+  Zap,
+  Calendar,
+  DollarSign,
+  FileText,
+  Settings,
+  ArrowRight,
+  BarChart3,
+  Briefcase,
+  LogOut  // ✅ THIS IS THE LOGOUT ICON IMPORT
+} from 'lucide-react';
 
-const AdminDashboard = () => {
-  const { user, logout } = useAuth();
+const AdminDashboardHome = () => {
+  const navigate = useNavigate();
+  const { user, logout } = useAuth(); // ✅ GET LOGOUT FUNCTION HERE
 
-  // Leave management state
-  const [showLeaveDropdown, setShowLeaveDropdown] = useState(false);
-  const [showApplyLeaveModal, setShowApplyLeaveModal] = useState(false);
-  const [showManageLeaveModal, setShowManageLeaveModal] = useState(false);
+  // Stats data
+  const stats = {
+    totalEmployees: 127,
+    activeToday: 98,
+    pendingLeaves: 5,
+    departments: 8,
+    attendanceRate: 77,
+    growthRate: 5
+  };
 
-  // Leave application form state
-  const [leaveForm, setLeaveForm] = useState({
-    leaveType: 'vacation',
-    startDate: '',
-    endDate: '',
-    reason: ''
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitMessage, setSubmitMessage] = useState('');
+  // ✅ LOGOUT HANDLER WITH CONFIRMATION
+  const handleLogout = () => {
+    if (window.confirm('Are you sure you want to logout?')) {
+      logout();
+    }
+  };
 
-  // Mock leave data
-  const [leaves, setLeaves] = useState([
-    {
-      id: 1,
-      employeeName: 'John Doe',
-      leaveType: 'vacation',
-      startDate: '2025-01-15',
-      endDate: '2025-01-18',
-      totalDays: 4,
-      reason: 'Family vacation',
-      status: 'pending',
-      appliedDate: '2025-01-10'
+  // ✅ QUICK ACTIONS - NOTICE THE LAST ITEM IS LOGOUT
+  const quickActions = [
+    { 
+      icon: Users, 
+      label: 'Employees', 
+      color: 'from-blue-500 to-cyan-600', 
+      action: () => navigate('/admin-dashboard/employees'),
+      bgColor: 'from-blue-50 to-cyan-50',
+      borderColor: 'border-blue-200'
     },
-    {
-      id: 2,
-      employeeName: 'Jane Smith',
-      leaveType: 'sick',
-      startDate: '2025-01-12',
-      endDate: '2025-01-14',
-      totalDays: 3,
-      reason: 'Medical treatment',
-      status: 'approved',
-      appliedDate: '2025-01-08'
+    { 
+      icon: Building, 
+      label: 'Departments', 
+      color: 'from-purple-500 to-pink-600', 
+      action: () => navigate('/admin-dashboard/departments'),
+      bgColor: 'from-purple-50 to-pink-50',
+      borderColor: 'border-purple-200'
+    },
+    { 
+      icon: DollarSign, 
+      label: 'Salaries', 
+      color: 'from-green-500 to-emerald-600', 
+      action: () => navigate('/admin-dashboard/salaries'),
+      bgColor: 'from-green-50 to-emerald-50',
+      borderColor: 'border-green-200'
+    },
+    { 
+      icon: Calendar, 
+      label: 'Leaves', 
+      color: 'from-orange-500 to-red-600', 
+      action: () => navigate('/admin-dashboard/leaves'),
+      bgColor: 'from-orange-50 to-red-50',
+      borderColor: 'border-orange-200'
+    },
+    { 
+      icon: FileText, 
+      label: 'Reports', 
+      color: 'from-indigo-500 to-purple-600', 
+      action: () => navigate('/admin-dashboard/reports'),
+      bgColor: 'from-indigo-50 to-purple-50',
+      borderColor: 'border-indigo-200'
+    },
+    { 
+      icon: Settings, 
+      label: 'Settings', 
+      color: 'from-gray-500 to-slate-600', 
+      action: () => navigate('/admin-dashboard/settings'),
+      bgColor: 'from-gray-50 to-slate-50',
+      borderColor: 'border-gray-200'
+    },
+    // ✅✅✅ THIS IS THE LOGOUT BUTTON - LAST ITEM IN THE ARRAY ✅✅✅
+    { 
+      icon: LogOut, 
+      label: 'Logout', 
+      color: 'from-red-500 to-rose-600', 
+      action: handleLogout,
+      bgColor: 'from-red-50 to-rose-50',
+      borderColor: 'border-red-200'
     }
-  ]);
+  ];
 
-  // Calculate total days between dates
-  const calculateDays = (start, end) => {
-    if (!start || !end) return 0;
-    const startDate = new Date(start);
-    const endDate = new Date(end);
-    return Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
-  };
-
-  // Handle leave form input changes
-  const handleLeaveFormChange = (e) => {
-    const { name, value } = e.target;
-    setLeaveForm(prev => ({ ...prev, [name]: value }));
-  };
-
-  // Submit leave application
-  const handleLeaveSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      const newLeave = {
-        id: Date.now(),
-        employeeName: user?.name || 'Current User',
-        leaveType: leaveForm.leaveType,
-        startDate: leaveForm.startDate,
-        endDate: leaveForm.endDate,
-        totalDays: calculateDays(leaveForm.startDate, leaveForm.endDate),
-        reason: leaveForm.reason,
-        status: 'pending',
-        appliedDate: new Date().toISOString().split('T')[0]
-      };
-      
-      setLeaves(prev => [newLeave, ...prev]);
-      setSubmitMessage('Leave application submitted successfully!');
-      
-      setLeaveForm({
-        leaveType: 'vacation',
-        startDate: '',
-        endDate: '',
-        reason: ''
-      });
-      
-      setTimeout(() => {
-        setShowApplyLeaveModal(false);
-        setSubmitMessage('');
-      }, 2000);
-      
-    } catch (error) {
-      setSubmitMessage('Failed to submit leave application. Please try again.');
-    } finally {
-      setIsSubmitting(false);
+  const recentActivities = [
+    { 
+      id: 1, 
+      message: 'John Doe checked in at 9:00 AM', 
+      subtext: 'Department: Engineering • Status: On Time',
+      time: '2 min ago', 
+      color: 'text-green-600', 
+      bg: 'bg-green-100',
+      borderColor: 'border-green-200',
+      gradientFrom: 'from-green-50',
+      gradientTo: 'to-emerald-50'
+    },
+    { 
+      id: 2, 
+      message: 'New leave request submitted by Jane Smith', 
+      subtext: 'Type: Vacation • Duration: 3 days',
+      time: '5 min ago', 
+      color: 'text-blue-600', 
+      bg: 'bg-blue-100',
+      borderColor: 'border-blue-200',
+      gradientFrom: 'from-blue-50',
+      gradientTo: 'to-indigo-50'
+    },
+    { 
+      id: 3, 
+      message: 'Department meeting scheduled for 2:00 PM', 
+      subtext: 'Department: Marketing • Attendees: 12',
+      time: '15 min ago', 
+      color: 'text-yellow-600', 
+      bg: 'bg-yellow-100',
+      borderColor: 'border-yellow-200',
+      gradientFrom: 'from-yellow-50',
+      gradientTo: 'to-orange-50'
+    },
+    { 
+      id: 4, 
+      message: 'New employee onboarded - Sarah Wilson', 
+      subtext: 'Department: Sales • Start Date: Today',
+      time: '1 hour ago', 
+      color: 'text-purple-600', 
+      bg: 'bg-purple-100',
+      borderColor: 'border-purple-200',
+      gradientFrom: 'from-purple-50',
+      gradientTo: 'to-pink-50'
     }
-  };
+  ];
 
-  // Approve/Reject leave
-  const handleLeaveAction = (leaveId, action) => {
-    setLeaves(prev => 
-      prev.map(leave => 
-        leave.id === leaveId 
-          ? { ...leave, status: action, reviewedDate: new Date().toISOString().split('T')[0] }
-          : leave
-      )
-    );
-  };
-
-  // Get pending leaves count
-  const pendingCount = leaves.filter(leave => leave.status === 'pending').length;
+  const currentHour = new Date().getHours();
+  const greeting = currentHour < 12 ? 'Good Morning' : currentHour < 18 ? 'Good Afternoon' : 'Good Evening';
+  const greetingEmoji = currentHour < 12 ? '🌅' : currentHour < 18 ? '☀️' : '🌙';
 
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      {/* Sidebar */}
-      <AdminSidebar />
-
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col">
+    <div className="p-6 md:p-8 space-y-6 md:space-y-8">
+      {/* Hero Welcome Banner */}
+      <div className="relative bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-3xl shadow-2xl overflow-hidden">
+        <div className="absolute inset-0 bg-black/5"></div>
+        <div className="absolute top-0 right-0 w-72 h-72 md:w-96 md:h-96 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-0 left-0 w-72 h-72 md:w-96 md:h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
         
-        {/* Enhanced Navbar */}
-        <div className="w-full bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 shadow-2xl border-b border-indigo-500/20">
-          <div className="flex items-center justify-between h-20 px-8 text-white">
-            {/* Left Section - Enhanced Logo/Brand */}
-            <div className="flex items-center gap-8">
-              <div className="flex items-center gap-4">
-                <div className="bg-white/15 backdrop-blur-sm p-3 rounded-2xl shadow-lg">
-                  <h3 className="text-xl font-bold bg-gradient-to-r from-white to-indigo-100 bg-clip-text text-transparent">
-                    Employee MS
-                  </h3>
+        <div className="relative px-6 md:px-8 py-8 md:py-12">
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-6 md:gap-8">
+            <div className="flex flex-col md:flex-row items-center md:items-start gap-4 md:gap-6 text-center md:text-left">
+              <div className="relative group">
+                <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 rounded-full blur-xl group-hover:blur-2xl transition-all"></div>
+                <img
+                  className="relative h-24 w-24 md:h-32 md:w-32 lg:h-36 lg:w-36 rounded-full object-cover border-4 border-white shadow-2xl transform group-hover:scale-105 transition-transform"
+                  src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'Admin')}&background=6366f1&color=fff&size=200`}
+                  alt={user?.name}
+                />
+                <div className="absolute -bottom-2 -right-2 bg-green-500 w-8 h-8 md:w-10 md:h-10 rounded-full border-4 border-white flex items-center justify-center shadow-lg">
+                  <div className="w-3 h-3 md:w-4 md:h-4 bg-white rounded-full animate-pulse"></div>
                 </div>
-                <div className="hidden md:block w-px h-10 bg-indigo-400/40"></div>
-                <div className="hidden md:flex items-center gap-4">
-                  <div className="p-2 bg-white/10 rounded-xl">
-                    <FaUserCircle className="text-2xl text-indigo-200" />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-center md:justify-start gap-2 mb-1">
+                  <span className="text-2xl md:text-3xl">{greetingEmoji}</span>
+                  <p className="text-white/90 text-lg md:text-xl font-semibold">{greeting}!</p>
+                </div>
+                <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-2 md:mb-3 drop-shadow-lg">
+                  {user?.name || 'Admin Dashboard'}
+                </h1>
+                <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 md:gap-3">
+                  <div className="flex items-center gap-2 bg-white/20 backdrop-blur-md px-3 md:px-4 py-1.5 md:py-2 rounded-full border border-white/30">
+                    <Briefcase className="w-3 h-3 md:w-4 md:h-4 text-white" />
+                    <span className="text-white font-semibold text-xs md:text-sm capitalize">{user?.role || 'Administrator'}</span>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-indigo-100">Welcome back,</p>
-                    <p className="text-lg font-bold text-white">{user?.name || 'Guest'}</p>
+                  <div className="flex items-center gap-2 bg-white/20 backdrop-blur-md px-3 md:px-4 py-1.5 md:py-2 rounded-full border border-white/30">
+                    <Building className="w-3 h-3 md:w-4 md:h-4 text-white" />
+                    <span className="text-white font-semibold text-xs md:text-sm">Organization Admin</span>
                   </div>
                 </div>
+                <p className="text-white/80 mt-3 text-xs md:text-sm">Monitor and manage your organization efficiently 🚀</p>
               </div>
             </div>
 
-            {/* Right Section - Enhanced */}
-            <div className="flex items-center gap-6">
-              {/* Enhanced Leave Management Button */}
-              <div className="relative">
-                <button
-                  onClick={() => setShowLeaveDropdown(!showLeaveDropdown)}
-                  className="group flex items-center gap-3 bg-white/15 backdrop-blur-sm hover:bg-white/25 px-5 py-3 rounded-2xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-                >
-                  <FaCalendarPlus className="text-xl group-hover:scale-110 transition-transform duration-300" />
-                  <span className="hidden sm:inline">Leave Management</span>
-                  {pendingCount > 0 && (
-                    <span className="bg-gradient-to-r from-red-500 to-rose-600 text-white text-xs px-2.5 py-1 rounded-full font-bold shadow-lg animate-pulse">
-                      {pendingCount}
-                    </span>
-                  )}
-                </button>
-
-                {/* Enhanced Leave Dropdown */}
-                {showLeaveDropdown && (
-                  <div className="absolute top-full mt-3 right-0 bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl z-50 min-w-64 border border-white/20 overflow-hidden">
-                    <div className="py-2">
-                      <button
-                        onClick={() => {
-                          setShowApplyLeaveModal(true);
-                          setShowLeaveDropdown(false);
-                        }}
-                        className="group w-full text-left px-6 py-4 text-slate-700 hover:bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50 hover:text-indigo-700 flex items-center gap-4 transition-all duration-300"
-                      >
-                        <div className="p-2 bg-indigo-100 group-hover:bg-indigo-200 rounded-xl transition-colors duration-300">
-                          <FaCalendarPlus className="text-indigo-600" />
-                        </div>
-                        <div>
-                          <p className="font-semibold">Apply for Leave</p>
-                          <p className="text-sm text-slate-500">Submit a new leave request</p>
-                        </div>
-                      </button>
-                      
-                      {(user?.role === 'admin' || user?.role === 'manager') && (
-                        <button
-                          onClick={() => {
-                            setShowManageLeaveModal(true);
-                            setShowLeaveDropdown(false);
-                          }}
-                          className="group w-full text-left px-6 py-4 text-slate-700 hover:bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50 hover:text-indigo-700 flex items-center gap-4 transition-all duration-300"
-                        >
-                          <div className="p-2 bg-indigo-100 group-hover:bg-indigo-200 rounded-xl transition-colors duration-300">
-                            <FaList className="text-indigo-600" />
-                          </div>
-                          <div className="flex-1">
-                            <p className="font-semibold">Manage Leaves</p>
-                            <p className="text-sm text-slate-500">Review pending requests</p>
-                          </div>
-                          {pendingCount > 0 && (
-                            <span className="bg-gradient-to-r from-red-500 to-rose-600 text-white text-xs px-2.5 py-1 rounded-full font-bold shadow-lg">
-                              {pendingCount}
-                            </span>
-                          )}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )}
+            <div className="bg-white/15 backdrop-blur-xl rounded-2xl md:rounded-3xl p-6 md:p-8 text-center border border-white/30 shadow-2xl">
+              <div className="text-white/80 text-xs md:text-sm mb-2 font-semibold uppercase tracking-wide">Today</div>
+              <div className="text-5xl md:text-6xl font-bold text-white mb-2">
+                {new Date().getDate()}
               </div>
-
-              {/* Enhanced Notifications */}
-              <button className="relative p-4 rounded-2xl hover:bg-white/15 backdrop-blur-sm transition-all duration-300 group shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
-                <FaBell className="text-xl group-hover:rotate-12 transition-transform duration-300" />
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-red-500 to-rose-600 rounded-full animate-pulse shadow-lg"></span>
-              </button>
-
-              {/* Enhanced User Info & Logout */}
-              <div className="flex items-center gap-4 pl-6 border-l border-indigo-400/30">
-                <div className="text-right hidden sm:block">
-                  <p className="text-sm font-semibold text-white">{user?.name || 'Guest'}</p>
-                  <p className="text-xs text-indigo-200 capitalize font-medium">{user?.role || 'User'}</p>
-                </div>
-                <button 
-                  onClick={logout}
-                  className="group flex items-center gap-3 bg-white/15 backdrop-blur-sm hover:bg-white/25 px-5 py-3 rounded-2xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 hover:scale-105"
-                >
-                  <FaSignOutAlt className="group-hover:rotate-12 transition-transform duration-300" />
-                  <span className="hidden sm:inline">Logout</span>
-                </button>
+              <div className="text-white text-sm md:text-base font-semibold mb-1">
+                {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+              </div>
+              <div className="text-white/70 text-xs md:text-sm font-medium">
+                {new Date().toLocaleDateString('en-US', { weekday: 'long' })}
               </div>
             </div>
           </div>
         </div>
-
-        {/* Enhanced Dashboard Content */}
-        <main className="flex-1 py-8 px-0">
-          <div className="max-w-7xl mx-auto px-8">
-            {/* Enhanced Page Title */}
-            <div className="mb-10 relative">
-              <div className="absolute -inset-4 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-3xl opacity-10 blur-2xl"></div>
-              <div className="relative">
-                <h1 className="text-5xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent mb-3">
-                  Admin Dashboard
-                </h1>
-                <p className="text-slate-600 text-xl">Monitor and manage your organization efficiently</p>
-              </div>
-            </div>
-            
-            {/* Enhanced Dashboard Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
-              <div className="group relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-3xl opacity-20 blur-sm group-hover:opacity-30 transition-opacity duration-300"></div>
-                <div className="relative bg-white/80 backdrop-blur-sm p-8 rounded-3xl shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="p-4 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl shadow-lg">
-                      <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                      </svg>
-                    </div>
-                  </div>
-                  <h3 className="text-lg font-bold text-slate-700 mb-2">Total Employees</h3>
-                  <p className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">127</p>
-                  <p className="text-sm text-slate-500 mt-2">+5% from last month</p>
-                </div>
-              </div>
-              
-              <div className="group relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-green-500 to-emerald-600 rounded-3xl opacity-20 blur-sm group-hover:opacity-30 transition-opacity duration-300"></div>
-                <div className="relative bg-white/80 backdrop-blur-sm p-8 rounded-3xl shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="p-4 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl shadow-lg">
-                      <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                  </div>
-                  <h3 className="text-lg font-bold text-slate-700 mb-2">Active Today</h3>
-                  <p className="text-4xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">98</p>
-                  <p className="text-sm text-slate-500 mt-2">77% attendance rate</p>
-                </div>
-              </div>
-              
-              <div className="group relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-yellow-500 to-orange-600 rounded-3xl opacity-20 blur-sm group-hover:opacity-30 transition-opacity duration-300"></div>
-                <div className="relative bg-white/80 backdrop-blur-sm p-8 rounded-3xl shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="p-4 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-2xl shadow-lg">
-                      <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                  </div>
-                  <h3 className="text-lg font-bold text-slate-700 mb-2">Pending Leaves</h3>
-                  <p className="text-4xl font-bold bg-gradient-to-r from-yellow-600 to-orange-600 bg-clip-text text-transparent">{pendingCount}</p>
-                  <p className="text-sm text-slate-500 mt-2">Require approval</p>
-                </div>
-              </div>
-              
-              <div className="group relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-600 rounded-3xl opacity-20 blur-sm group-hover:opacity-30 transition-opacity duration-300"></div>
-                <div className="relative bg-white/80 backdrop-blur-sm p-8 rounded-3xl shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="p-4 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl shadow-lg">
-                      <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                      </svg>
-                    </div>
-                  </div>
-                  <h3 className="text-lg font-bold text-slate-700 mb-2">Departments</h3>
-                  <p className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">8</p>
-                  <p className="text-sm text-slate-500 mt-2">Across organization</p>
-                </div>
-              </div>
-            </div>
-            
-            {/* Enhanced Recent Activities */}
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-3xl opacity-10 blur-2xl"></div>
-              <div className="relative bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl border border-white/20 p-10">
-                <div className="flex items-center gap-4 mb-8">
-                  <div className="p-4 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl shadow-lg">
-                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-                      Recent Activities
-                    </h2>
-                    <p className="text-slate-600">Latest updates from your organization</p>
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <div className="group flex items-center gap-6 p-6 bg-gradient-to-r from-green-50 to-emerald-50 hover:from-green-100 hover:to-emerald-100 rounded-2xl transition-all duration-300 border border-green-200/50 hover:border-green-300/70">
-                    <div className="flex-shrink-0">
-                      <div className="w-4 h-4 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full shadow-lg group-hover:scale-110 transition-transform duration-300"></div>
-                    </div>
-                    <div className="flex-1">
-                      <span className="text-slate-800 font-semibold">John Doe checked in at 9:00 AM</span>
-                      <p className="text-sm text-slate-500 mt-1">Department: Engineering • Status: On Time</p>
-                    </div>
-                    <div className="text-xs text-green-600 font-semibold bg-green-100 px-3 py-1 rounded-full">
-                      2 min ago
-                    </div>
-                  </div>
-                  
-                  <div className="group flex items-center gap-6 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 rounded-2xl transition-all duration-300 border border-blue-200/50 hover:border-blue-300/70">
-                    <div className="flex-shrink-0">
-                      <div className="w-4 h-4 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full shadow-lg group-hover:scale-110 transition-transform duration-300"></div>
-                    </div>
-                    <div className="flex-1">
-                      <span className="text-slate-800 font-semibold">New leave request submitted by Jane Smith</span>
-                      <p className="text-sm text-slate-500 mt-1">Type: Vacation • Duration: 3 days</p>
-                    </div>
-                    <div className="text-xs text-blue-600 font-semibold bg-blue-100 px-3 py-1 rounded-full">
-                      5 min ago
-                    </div>
-                  </div>
-                  
-                  <div className="group flex items-center gap-6 p-6 bg-gradient-to-r from-yellow-50 to-orange-50 hover:from-yellow-100 hover:to-orange-100 rounded-2xl transition-all duration-300 border border-yellow-200/50 hover:border-yellow-300/70">
-                    <div className="flex-shrink-0">
-                      <div className="w-4 h-4 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full shadow-lg group-hover:scale-110 transition-transform duration-300"></div>
-                    </div>
-                    <div className="flex-1">
-                      <span className="text-slate-800 font-semibold">Department meeting scheduled for 2:00 PM</span>
-                      <p className="text-sm text-slate-500 mt-1">Department: Marketing • Attendees: 12</p>
-                    </div>
-                    <div className="text-xs text-yellow-600 font-semibold bg-yellow-100 px-3 py-1 rounded-full">
-                      15 min ago
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </main>
       </div>
 
-      {/* Enhanced Apply Leave Modal */}
-      {showApplyLeaveModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="relative max-w-lg w-full transform transition-all duration-300 scale-100">
-            <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 via-purple-600 to-indigo-700 rounded-3xl opacity-20 blur-2xl animate-pulse"></div>
-            
-            <div className="relative bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl border border-white/20 overflow-hidden max-h-[90vh] overflow-y-auto">
-              <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 p-8 flex justify-between items-center">
-                <div className="flex items-center space-x-4">
-                  <div className="p-4 bg-white/20 backdrop-blur-sm rounded-2xl">
-                    <FaCalendarPlus className="text-2xl text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-2xl font-bold text-white">Apply for Leave</h3>
-                    <p className="text-indigo-100 text-lg">Submit your leave request</p>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => setShowApplyLeaveModal(false)}
-                  className="group p-3 text-white/80 hover:text-white hover:bg-white/10 rounded-2xl transition-all duration-300"
-                >
-                  <FaTimes className="text-xl group-hover:rotate-90 transition-transform duration-300" />
-                </button>
-              </div>
-              
-              <div className="p-10">
-                {submitMessage && (
-                  <div className="mb-8 relative">
-                    <div className={`absolute inset-0 rounded-2xl opacity-20 blur-sm ${
-                      submitMessage.includes('success') ? 'bg-gradient-to-r from-green-400 to-emerald-500' : 'bg-gradient-to-r from-red-400 to-rose-500'
-                    }`}></div>
-                    <div className={`relative p-6 backdrop-blur-sm rounded-2xl shadow-xl border-l-4 ${
-                      submitMessage.includes('success') 
-                        ? 'bg-green-50 border-green-500 text-green-800' 
-                        : 'bg-red-50 border-red-500 text-red-800'
-                    }`}>
-                      <div className="flex items-center">
-                        <div className={`p-3 rounded-xl mr-4 ${
-                          submitMessage.includes('success') ? 'bg-green-100' : 'bg-red-100'
-                        }`}>
-                          {submitMessage.includes('success') ? (
-                            <svg className="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                            </svg>
-                          ) : (
-                            <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                          )}
-                        </div>
-                        <p className="font-bold text-lg">{submitMessage}</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                
-                <form onSubmit={handleLeaveSubmit} className="space-y-8">
-                  <div className="relative">
-                    <label className="block text-sm font-bold text-slate-800 mb-4">Leave Type</label>
-                    <div className="relative group">
-                      <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl opacity-20 blur-sm group-focus-within:opacity-30 transition-opacity duration-300"></div>
-                      <select
-                        name="leaveType"
-                        value={leaveForm.leaveType}
-                        onChange={handleLeaveFormChange}
-                        className="relative w-full p-5 border-2 border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-300 text-lg font-semibold bg-white/80 backdrop-blur-sm shadow-lg focus:shadow-xl"
-                        required
-                      >
-                        <option value="vacation">Vacation</option>
-                        <option value="sick">Sick Leave</option>
-                        <option value="personal">Personal</option>
-                        <option value="emergency">Emergency</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-6">
-                    <div className="relative">
-                      <label className="block text-sm font-bold text-slate-800 mb-4">Start Date</label>
-                      <div className="relative group">
-                        <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl opacity-20 blur-sm group-focus-within:opacity-30 transition-opacity duration-300"></div>
-                        <input
-                          type="date"
-                          name="startDate"
-                          value={leaveForm.startDate}
-                          onChange={handleLeaveFormChange}
-                          className="relative w-full p-5 border-2 border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-300 text-lg font-semibold bg-white/80 backdrop-blur-sm shadow-lg focus:shadow-xl"
-                          required
-                        />
-                      </div>
-                    </div>
-                    <div className="relative">
-                      <label className="block text-sm font-bold text-slate-800 mb-4">End Date</label>
-                      <div className="relative group">
-                        <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl opacity-20 blur-sm group-focus-within:opacity-30 transition-opacity duration-300"></div>
-                        <input
-                          type="date"
-                          name="endDate"
-                          value={leaveForm.endDate}
-                          onChange={handleLeaveFormChange}
-                          className="relative w-full p-5 border-2 border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-300 text-lg font-semibold bg-white/80 backdrop-blur-sm shadow-lg focus:shadow-xl"
-                          required
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {leaveForm.startDate && leaveForm.endDate && (
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-indigo-500 rounded-2xl opacity-20 blur-sm"></div>
-                      <div className="relative p-6 bg-blue-50 backdrop-blur-sm rounded-2xl border border-blue-200">
-                        <div className="flex items-center gap-4">
-                          <div className="p-3 bg-blue-100 rounded-xl">
-                            <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                          </div>
-                          <div>
-                            <p className="text-blue-800 font-bold text-lg">
-                              Total Days: {calculateDays(leaveForm.startDate, leaveForm.endDate)}
-                            </p>
-                            <p className="text-blue-600 text-sm">Including weekends and holidays</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="relative">
-                    <label className="block text-sm font-bold text-slate-800 mb-4">Reason</label>
-                    <div className="relative group">
-                      <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl opacity-20 blur-sm group-focus-within:opacity-30 transition-opacity duration-300"></div>
-                      <textarea
-                        name="reason"
-                        value={leaveForm.reason}
-                        onChange={handleLeaveFormChange}
-                        rows="4"
-                        className="relative w-full p-5 border-2 border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-300 resize-none bg-white/80 backdrop-blur-sm shadow-lg focus:shadow-xl"
-                        placeholder="Please provide a reason for your leave..."
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex gap-4 pt-6">
-                    <button
-                      type="button"
-                      onClick={() => setShowApplyLeaveModal(false)}
-                      className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-800 py-4 px-6 rounded-2xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-                      disabled={isSubmitting}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className="flex-1 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-700 hover:via-purple-700 hover:to-indigo-800 text-white py-4 px-6 rounded-2xl font-semibold transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:-translate-y-0.5 disabled:opacity-50 flex items-center justify-center gap-3"
-                      disabled={isSubmitting}
-                    >
-                      {isSubmitting ? (
-                        <>
-                          <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
-                          <span>Submitting...</span>
-                        </>
-                      ) : (
-                        <>
-                          <FaCalendarPlus />
-                          <span>Submit Request</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Enhanced Manage Leaves Modal */}
-      {showManageLeaveModal && (user?.role === 'admin' || user?.role === 'manager') && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="relative max-w-6xl w-full transform transition-all duration-300 scale-100">
-            <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 via-purple-600 to-indigo-700 rounded-3xl opacity-20 blur-2xl animate-pulse"></div>
-            
-            <div className="relative bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl border border-white/20 overflow-hidden max-h-[90vh] overflow-y-auto">
-              <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 p-8 flex justify-between items-center">
-                <div className="flex items-center space-x-4">
-                  <div className="p-4 bg-white/20 backdrop-blur-sm rounded-2xl">
-                    <FaList className="text-2xl text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-2xl font-bold text-white">Manage Leave Requests</h3>
-                    <p className="text-indigo-100 text-lg">Review and approve pending requests</p>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => setShowManageLeaveModal(false)}
-                  className="group p-3 text-white/80 hover:text-white hover:bg-white/10 rounded-2xl transition-all duration-300"
-                >
-                  <FaTimes className="text-xl group-hover:rotate-90 transition-transform duration-300" />
-                </button>
-              </div>
-              
-              <div className="p-10">
-                <div className="space-y-6">
-                  {leaves.map(leave => (
-                    <div key={leave.id} className="relative group">
-                      <div className="absolute inset-0 bg-gradient-to-r from-slate-100 to-slate-200 rounded-3xl opacity-50 group-hover:opacity-70 transition-opacity duration-300"></div>
-                      <div className="relative border-2 border-slate-200 hover:border-indigo-300 rounded-3xl p-8 bg-white/80 backdrop-blur-sm shadow-xl hover:shadow-2xl transition-all duration-300">
-                        <div className="flex justify-between items-start mb-6">
-                          <div className="flex items-center gap-4">
-                            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
-                              <span className="text-white font-bold text-xl">
-                                {leave.employeeName.split(' ').map(n => n[0]).join('')}
-                              </span>
-                            </div>
-                            <div>
-                              <h4 className="font-bold text-2xl text-slate-900">{leave.employeeName}</h4>
-                              <p className="text-lg text-slate-600 capitalize font-semibold">{leave.leaveType} Leave</p>
-                            </div>
-                          </div>
-                          <span className={`px-4 py-2 rounded-2xl text-sm font-bold shadow-lg ${
-                            leave.status === 'pending' ? 'bg-gradient-to-r from-yellow-100 to-orange-100 text-yellow-800 border border-yellow-300' :
-                            leave.status === 'approved' ? 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-300' :
-                            'bg-gradient-to-r from-red-100 to-rose-100 text-red-800 border border-red-300'
-                          }`}>
-                            {leave.status.toUpperCase()}
-                          </span>
-                        </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                          <div className="p-4 bg-blue-50 rounded-2xl border border-blue-200">
-                            <span className="text-blue-600 font-semibold">Duration:</span>
-                            <p className="text-blue-800 font-bold text-lg">{leave.totalDays} days</p>
-                          </div>
-                          <div className="p-4 bg-green-50 rounded-2xl border border-green-200">
-                            <span className="text-green-600 font-semibold">From:</span>
-                            <p className="text-green-800 font-bold text-lg">{new Date(leave.startDate).toLocaleDateString()}</p>
-                          </div>
-                          <div className="p-4 bg-purple-50 rounded-2xl border border-purple-200">
-                            <span className="text-purple-600 font-semibold">To:</span>
-                            <p className="text-purple-800 font-bold text-lg">{new Date(leave.endDate).toLocaleDateString()}</p>
-                          </div>
-                        </div>
-                        
-                        <div className="mb-6">
-                          <span className="text-slate-600 font-semibold">Reason:</span>
-                          <div className="mt-3 p-6 bg-slate-50 rounded-2xl border border-slate-200">
-                            <p className="text-slate-800 text-lg leading-relaxed">{leave.reason}</p>
-                          </div>
-                        </div>
-                        
-                        {leave.status === 'pending' && (
-                          <div className="flex gap-4">
-                            <button
-                              onClick={() => handleLeaveAction(leave.id, 'approved')}
-                              className="group flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white py-4 px-6 rounded-2xl font-bold transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 flex items-center justify-center gap-3"
-                            >
-                              <svg className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                              </svg>
-                              <span>Approve Request</span>
-                            </button>
-                            <button
-                              onClick={() => handleLeaveAction(leave.id, 'rejected')}
-                              className="group flex-1 bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white py-4 px-6 rounded-2xl font-bold transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 flex items-center justify-center gap-3"
-                            >
-                              <svg className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                              </svg>
-                              <span>Reject Request</span>
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                  
-                  {leaves.length === 0 && (
-                    <div className="text-center py-16">
-                      <div className="p-6 bg-slate-100 rounded-full w-24 h-24 mx-auto mb-6 flex items-center justify-center">
-                        <svg className="w-12 h-12 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                      </div>
-                      <h3 className="text-2xl font-bold text-slate-700 mb-2">No Leave Requests</h3>
-                      <p className="text-slate-500 text-lg">All requests have been processed or none submitted yet.</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Click outside to close dropdown */}
-      {showLeaveDropdown && (
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <div 
-          className="fixed inset-0 z-40" 
-          onClick={() => setShowLeaveDropdown(false)}
-        />
-      )}
+          className="group relative bg-white rounded-2xl shadow-lg hover:shadow-2xl overflow-hidden transform hover:-translate-y-2 transition-all cursor-pointer"
+          onClick={() => navigate('/admin-dashboard/employees')}
+        >
+          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-full -mr-16 -mt-16"></div>
+          <div className="relative p-5 md:p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="bg-gradient-to-br from-blue-500 to-indigo-600 p-3 md:p-4 rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
+                <Users className="w-6 h-6 md:w-8 md:h-8 text-white" />
+              </div>
+              <ArrowRight className="w-5 h-5 md:w-6 md:h-6 text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
+            </div>
+            <h3 className="text-gray-600 text-xs md:text-sm font-bold uppercase tracking-wide mb-2">Total Employees</h3>
+            <p className="text-4xl md:text-5xl font-bold text-gray-900 mb-2">{stats.totalEmployees}</p>
+            <p className="text-blue-600 text-xs md:text-sm font-semibold">+{stats.growthRate}% from last month</p>
+          </div>
+        </div>
+
+        <div className="group relative bg-white rounded-2xl shadow-lg hover:shadow-2xl overflow-hidden transform hover:-translate-y-2 transition-all cursor-pointer">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-full -mr-16 -mt-16"></div>
+          <div className="relative p-5 md:p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="bg-gradient-to-br from-green-500 to-emerald-600 p-3 md:p-4 rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
+                <CheckCircle className="w-6 h-6 md:w-8 md:h-8 text-white" />
+              </div>
+              <ArrowRight className="w-5 h-5 md:w-6 md:h-6 text-gray-400 group-hover:text-green-600 group-hover:translate-x-1 transition-all" />
+            </div>
+            <h3 className="text-gray-600 text-xs md:text-sm font-bold uppercase tracking-wide mb-2">Active Today</h3>
+            <p className="text-4xl md:text-5xl font-bold text-gray-900 mb-2">{stats.activeToday}</p>
+            <p className="text-green-600 text-xs md:text-sm font-semibold">{stats.attendanceRate}% attendance rate</p>
+          </div>
+        </div>
+
+        <div className="group relative bg-white rounded-2xl shadow-lg hover:shadow-2xl overflow-hidden transform hover:-translate-y-2 transition-all cursor-pointer"
+             onClick={() => navigate('/admin-dashboard/leaves')}>
+          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-yellow-500/10 to-orange-500/10 rounded-full -mr-16 -mt-16"></div>
+          <div className="relative p-5 md:p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="bg-gradient-to-br from-yellow-500 to-orange-600 p-3 md:p-4 rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
+                <Clock className="w-6 h-6 md:w-8 md:h-8 text-white" />
+              </div>
+              <ArrowRight className="w-5 h-5 md:w-6 md:h-6 text-gray-400 group-hover:text-yellow-600 group-hover:translate-x-1 transition-all" />
+            </div>
+            <h3 className="text-gray-600 text-xs md:text-sm font-bold uppercase tracking-wide mb-2">Pending Leaves</h3>
+            <p className="text-4xl md:text-5xl font-bold text-gray-900 mb-2">{stats.pendingLeaves}</p>
+            <p className="text-yellow-600 text-xs md:text-sm font-semibold">Require approval</p>
+          </div>
+        </div>
+
+        <div className="group relative bg-white rounded-2xl shadow-lg hover:shadow-2xl overflow-hidden transform hover:-translate-y-2 transition-all cursor-pointer"
+             onClick={() => navigate('/admin-dashboard/departments')}>
+          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-full -mr-16 -mt-16"></div>
+          <div className="relative p-5 md:p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="bg-gradient-to-br from-purple-500 to-pink-600 p-3 md:p-4 rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
+                <Building className="w-6 h-6 md:w-8 md:h-8 text-white" />
+              </div>
+              <ArrowRight className="w-5 h-5 md:w-6 md:h-6 text-gray-400 group-hover:text-purple-600 group-hover:translate-x-1 transition-all" />
+            </div>
+            <h3 className="text-gray-600 text-xs md:text-sm font-bold uppercase tracking-wide mb-2">Departments</h3>
+            <p className="text-4xl md:text-5xl font-bold text-gray-900 mb-2">{stats.departments}</p>
+            <p className="text-purple-600 text-xs md:text-sm font-semibold">Across organization</p>
+          </div>
+        </div>
+      </div>
+
+      {/* ✅✅✅ QUICK ACTIONS SECTION - THIS IS WHERE LOGOUT APPEARS ✅✅✅ */}
+      <div className="bg-white rounded-2xl md:rounded-3xl shadow-xl p-6 md:p-8">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="bg-gradient-to-r from-yellow-400 to-orange-500 p-2.5 md:p-3 rounded-xl shadow-lg">
+            <Zap className="w-6 h-6 md:w-7 md:h-7 text-white" />
+          </div>
+          <div>
+            <h2 className="text-xl md:text-2xl font-bold text-gray-800">Quick Actions</h2>
+            <p className="text-gray-600 text-xs md:text-sm">Access key management features</p>
+          </div>
+        </div>
+        
+        {/* ✅ THE GRID BELOW RENDERS ALL QUICK ACTIONS INCLUDING LOGOUT (7 ITEMS) */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3 md:gap-4">
+          {quickActions.map((action, index) => (
+            <button
+              key={index}
+              onClick={action.action}
+              className={`group relative bg-gradient-to-br ${action.bgColor} hover:shadow-xl rounded-xl md:rounded-2xl p-4 md:p-6 transition-all transform hover:scale-105 border ${action.borderColor}`}
+            >
+              <div className={`bg-gradient-to-br ${action.color} w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl flex items-center justify-center mb-3 md:mb-4 mx-auto group-hover:scale-110 transition-transform shadow-lg`}>
+                <action.icon className="w-6 h-6 md:w-8 md:h-8 text-white" />
+              </div>
+              <p className="text-xs md:text-sm font-bold text-gray-800 text-center">{action.label}</p>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+        <div className="lg:col-span-2 bg-white rounded-2xl md:rounded-3xl shadow-xl overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-600 to-cyan-600 p-5 md:p-6">
+            <h2 className="text-lg md:text-xl font-bold text-white flex items-center gap-2">
+              <Activity className="w-5 h-5 md:w-6 md:h-6" />
+              Recent Activities
+            </h2>
+            <p className="text-blue-100 text-xs md:text-sm mt-1">Latest updates from your organization</p>
+          </div>
+          
+          <div className="p-5 md:p-6 space-y-3">
+            {recentActivities.map((activity) => (
+              <div key={activity.id} className={`flex items-start gap-3 md:gap-4 p-4 md:p-5 bg-gradient-to-r ${activity.gradientFrom} ${activity.gradientTo} rounded-xl hover:shadow-md transition-all border ${activity.borderColor}`}>
+                <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md ${activity.bg}`}>
+                  <CheckCircle className={`w-5 h-5 md:w-6 md:h-6 ${activity.color}`} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs md:text-sm font-bold text-gray-800">{activity.message}</p>
+                  <p className="text-xs text-gray-600 mt-1">{activity.subtext}</p>
+                  <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    {activity.time}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="lg:col-span-1 space-y-4 md:space-y-6">
+          <div className="bg-white rounded-2xl md:rounded-3xl shadow-xl overflow-hidden">
+            <div className="bg-gradient-to-r from-green-600 to-emerald-600 p-5 md:p-6">
+              <h2 className="text-lg md:text-xl font-bold text-white flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 md:w-6 md:h-6" />
+                Overview
+              </h2>
+            </div>
+            
+            <div className="p-5 md:p-6 space-y-4">
+              <div className="p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl border border-blue-200">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-semibold text-blue-700">Attendance</span>
+                  <span className="text-lg font-bold text-blue-900">{stats.attendanceRate}%</span>
+                </div>
+                <div className="w-full bg-blue-200 rounded-full h-2 overflow-hidden">
+                  <div 
+                    className="bg-gradient-to-r from-blue-500 to-cyan-600 h-full rounded-full transition-all"
+                    style={{ width: `${stats.attendanceRate}%` }}
+                  ></div>
+                </div>
+              </div>
+
+              <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-semibold text-green-700">Growth Rate</span>
+                  <span className="text-lg font-bold text-green-900">+{stats.growthRate}%</span>
+                </div>
+                <div className="w-full bg-green-200 rounded-full h-2 overflow-hidden">
+                  <div 
+                    className="bg-gradient-to-r from-green-500 to-emerald-600 h-full rounded-full transition-all"
+                    style={{ width: '85%' }}
+                  ></div>
+                </div>
+              </div>
+
+              <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-200">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-semibold text-purple-700">Satisfaction</span>
+                  <span className="text-lg font-bold text-purple-900">92%</span>
+                </div>
+                <div className="w-full bg-purple-200 rounded-full h-2 overflow-hidden">
+                  <div 
+                    className="bg-gradient-to-r from-purple-500 to-pink-600 h-full rounded-full transition-all"
+                    style={{ width: '92%' }}
+                  ></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl md:rounded-3xl shadow-xl overflow-hidden">
+            <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-5 md:p-6">
+              <h2 className="text-lg md:text-xl font-bold text-white flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 md:w-6 md:h-6" />
+                Quick Stats
+              </h2>
+            </div>
+            
+            <div className="p-5 md:p-6 space-y-3">
+              <div className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl border border-blue-200">
+                <span className="text-xs font-semibold text-gray-700">New This Month</span>
+                <span className="text-lg font-bold text-blue-600">12</span>
+              </div>
+              <div className="flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
+                <span className="text-xs font-semibold text-gray-700">On Leave Today</span>
+                <span className="text-lg font-bold text-green-600">8</span>
+              </div>
+              <div className="flex items-center justify-between p-3 bg-gradient-to-r from-orange-50 to-red-50 rounded-xl border border-orange-200">
+                <span className="text-xs font-semibold text-gray-700">Remote Workers</span>
+                <span className="text-lg font-bold text-orange-600">45</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
 
-export default AdminDashboard;
+export default AdminDashboardHome;

@@ -6,7 +6,11 @@ const router = express.Router();
 
 router.post('/add', verifyUser, addDepartment);
 router.get('/', verifyUser, getDepartments);             
-router.put('/:id', verifyUser, updateDepartment);         
+
+// ✅ Support BOTH PUT and PATCH for updating
+router.put('/:id', verifyUser, updateDepartment);
+router.patch('/:id', verifyUser, updateDepartment);  // ADD THIS LINE
+
 router.delete('/:id', verifyUser, deleteDepartment);      
 
 export default router;

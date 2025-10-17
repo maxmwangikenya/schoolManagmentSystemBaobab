@@ -1,7 +1,9 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import Employee from '../models/Employee.js';
+import dotenv from "dotenv";
 import bcrypt from 'bcrypt';
+dotenv.config();
 
 // Check if email exists
 const checkEmail = async (req, res) => {
@@ -86,17 +88,7 @@ const login = async (req, res) => {
         if (user.role === 'employee') {
             console.log('Finding employee document for user ID:', user._id);
             const employee = await Employee.findOne({ user: user._id });
-            if (employee) {
-                employeeId = employee._id;
-                console.log('Employee document found!');
-                console.log('   User ID (in User collection):', user._id);
-                console.log('  Employee ID (in Employee collection):', employeeId);
-                console.log('   Employee Name:', employee.name);
-            } else {
-                console.log('  WARNING: No employee document found for this user!');
-                console.log('   This user has role "employee" but no Employee document exists.');
-                console.log('   Please create an employee record for this user.');
-            }
+
         }
 
         // Check for JWT_SECRET
@@ -113,10 +105,10 @@ const login = async (req, res) => {
                 email: user.email
             },
             process.env.JWT_SECRET || 'fallback_secret_key',
-            { expiresIn: "10d" }
+            { expiresIn: "7d" } // ✅ FIXED: Changed from "30m" to "7d" (7 days)
         );
 
-
+        console.log('✅ Token generated successfully! Valid for 7 days');
 
         // Send response
         res.status(200).json({
@@ -213,10 +205,10 @@ const register = async (req, res) => {
                 email: newUser.email
             },
             process.env.JWT_SECRET || 'fallback_secret_key',
-            { expiresIn: "10d" }
+            { expiresIn: "7d" } // ✅ Changed from "10d" to "7d" for consistency
         );
 
-
+        console.log('✅ Token generated successfully! Valid for 7 days');
 
         // Send success response
         res.status(201).json({

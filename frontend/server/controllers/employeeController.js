@@ -3,6 +3,7 @@ import User from '../models/User.js';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import bcrypt from 'bcrypt';
 
 // Configure multer for file upload
 const storage = multer.diskStorage({
@@ -69,13 +70,123 @@ export const getEmployeeById = async (req, res) => {
       });
     }
     
-    // Return employee directly (not wrapped)
     res.json(employee);
   } catch (error) {
     console.error('Error fetching employee:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch employee'
+    });
+  }
+};
+
+// ✨ Get all employee salaries (for salary management page)
+export const getAllEmployeeSalaries = async (req, res) => {
+  try {
+    const employees = await Employee.find()
+      .select('name employeeId designation department salary')
+      .sort({ createdAt: -1 });
+    
+    res.json({
+      success: true,
+      count: employees.length,
+      salaries: employees
+    });
+  } catch (error) {
+    console.error('Error fetching employee salaries:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch employee salaries'
+    });
+  }
+};
+
+// ✨ Get employee salary by ID
+export const getEmployeeSalary = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const employee = await Employee.findById(id)
+      .select('name employeeId designation department salary');
+    
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        error: 'Employee not found'
+      });
+    }
+    
+    res.json({
+      success: true,
+      salary: {
+        _id: employee._id,
+        employeeId: employee.employeeId,
+        name: employee.name,
+        designation: employee.designation,
+        department: employee.department,
+        salary: employee.salary || 0
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching employee salary:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch employee salary'
+    });
+  }
+};
+
+// ✨ Update employee salary
+export const updateEmployeeSalary = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { salary } = req.body;
+
+    // Validate salary
+    if (salary === undefined || salary === null) {
+      return res.status(400).json({
+        success: false,
+        error: 'Please provide salary amount'
+      });
+    }
+
+    if (salary < 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Salary cannot be negative'
+      });
+    }
+
+    const employee = await Employee.findByIdAndUpdate(
+      id,
+      { salary, updatedAt: Date.now() },
+      { new: true, runValidators: true }
+    );
+
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        error: 'Employee not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Salary updated successfully',
+      employee: {
+        _id: employee._id,
+        employeeId: employee.employeeId,
+        name: employee.name,
+        designation: employee.designation,
+        department: employee.department,
+        salary: employee.salary
+      }
+    });
+  } catch (error) {
+    console.error('Error updating salary:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update salary'
     });
   }
 };
@@ -100,7 +211,7 @@ export const addEmployee = async (req, res) => {
     if (!name || !email || !employeeId || !department || !designation) {
       return res.status(400).json({
         success: false,
-        error: 'Please provide all required fields'
+        error: 'Please provide all required fields (name, email, employeeId, department, designation)'
       });
     }
 
@@ -110,6 +221,15 @@ export const addEmployee = async (req, res) => {
       return res.status(400).json({
         success: false,
         error: 'Employee with this email already exists'
+      });
+    }
+
+    // Check if employeeId already exists
+    const existingEmployeeId = await Employee.findOne({ employeeId });
+    if (existingEmployeeId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Employee ID already exists'
       });
     }
 
@@ -137,13 +257,13 @@ export const addEmployee = async (req, res) => {
       name,
       email,
       employeeId,
-      dob,
-      gender,
-      maritalStatus,
+      dob: dob || undefined,
+      gender: gender || undefined,
+      maritalStatus: maritalStatus || undefined,
       designation,
       department,
-      salary,
-      profileImage: req.file ? req.file.filename : null,
+      salary: salary || 0,
+      profileImage: req.file ? req.file.filename : undefined,
       user: userId
     });
 
@@ -158,7 +278,7 @@ export const addEmployee = async (req, res) => {
     console.error('Error adding employee:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to add employee'
+      error: error.message || 'Failed to add employee'
     });
   }
 };
@@ -169,9 +289,13 @@ export const updateEmployee = async (req, res) => {
     const { id } = req.params;
     const updateData = { ...req.body };
 
+    // Add profile image if uploaded
     if (req.file) {
       updateData.profileImage = req.file.filename;
     }
+
+    // Update timestamp
+    updateData.updatedAt = Date.now();
 
     const updatedEmployee = await Employee.findByIdAndUpdate(
       id,
@@ -195,7 +319,7 @@ export const updateEmployee = async (req, res) => {
     console.error('Error updating employee:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to update employee'
+      error: error.message || 'Failed to update employee'
     });
   }
 };

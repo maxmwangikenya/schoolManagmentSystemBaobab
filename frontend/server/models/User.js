@@ -1,57 +1,74 @@
-import mongoose, { Schema } from "mongoose";
+// models/User.js
+import mongoose from 'mongoose';
+import bcrypt from 'bcryptjs';
 
-const userSchema = new Schema({
-    name: {
-        type: String,
-        required: true
-    },
-    email: {
-        type: String,
-        required: true,
-        unique: true
-    },
-    password: {
-        type: String,
-        required: true
-    },
-    role: {
-        type: String,
-        required: true,
-        enum: ['admin', 'employee']
-    },
-    phoneNumber: {
-        type: String,
-        required: false
-    },
-    address: {
-        type: String,
-        required: false
-    },
-    createdAt: {
-        type: Date,
-        default: Date.now
-    },
-    updatedAt: {
-        type: Date,
-        default: Date.now
-    }
+const userSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: [true, 'Name is required'],
+    trim: true
+  },
+  email: {
+    type: String,
+    required: [true, 'Email is required'],
+    unique: true,
+    lowercase: true,
+    trim: true
+  },
+  password: {
+    type: String,
+    required: [true, 'Password is required'],
+    minlength: 6
+  },
+  role: {
+    type: String,
+    enum: ['admin', 'employee'],
+    default: 'employee'
+  },
+  refreshToken: {
+    type: String,
+    default: null
+  },
+  department: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Department'
+  },
+  profileImage: {
+    type: String,
+    default: null
+  }
+}, {
+  timestamps: true
 });
 
-// Add pre-save middleware to update the updatedAt field
-userSchema.pre('save', function(next) {
-    this.updatedAt = Date.now();
+// Hash password before saving
+userSchema.pre('save', async function(next) {
+  if (!this.isModified('password')) {
+    return next();
+  }
+  
+  try {
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
     next();
+  } catch (error) {
+    next(error);
+  }
 });
 
-// Proper way to handle model compilation
-let User;
+// Compare password method
+userSchema.methods.comparePassword = async function(candidatePassword) {
+  return await bcrypt.compare(candidatePassword, this.password);
+};
 
-try {
-    // Try to get existing model
-    User = mongoose.model('User');
-} catch (error) {
-    // Model doesn't exist, create it
-    User = mongoose.model('User', userSchema);
-}
+// Remove sensitive data when converting to JSON
+userSchema.methods.toJSON = function() {
+  const user = this.toObject();
+  delete user.password;
+  delete user.refreshToken;
+  return user;
+};
+
+const User = mongoose.model('User', userSchema);
 
 export default User;

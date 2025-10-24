@@ -4,6 +4,7 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import connectToDatabase from './db/db.js';
+
 // Import routes
 import authRouter from './routes/auth.js';
 import departmentRouter from './routes/department.js';
@@ -66,7 +67,8 @@ app.get('/', (req, res) => {
       employees: '/api/employees',
       salary: '/api/salary',
       leaves: '/api/leaves',
-      reports: '/api/reports'
+      reports: '/api/reports',
+      payroll: '/api/payroll'
     }
   });
 });
@@ -126,12 +128,16 @@ app.listen(PORT, () => {
   console.log(`    └─ Department stats: GET /api/salary/department/:departmentId/stats`);
   console.log(`  Leaves: http://localhost:${PORT}/api/leaves`);
   console.log(`  Reports: http://localhost:${PORT}/api/reports`);
-  console.log(`    ├─ Get all reports: GET /api/reports`);
-  console.log(`    ├─ Get statistics: GET /api/reports/statistics`);
-  console.log(`    ├─ Generate report: POST /api/reports`);
-  console.log(`    ├─ Get report by ID: GET /api/reports/:id`);
-  console.log(`    ├─ Update report: PUT /api/reports/:id`);
-  console.log(`    └─ Delete report: DELETE /api/reports/:id`);
+  console.log(`    ├─ All leave reports: GET /api/reports/leaves`);
+  console.log(`    │   ├─ Filter by status: ?status=Approved`);
+  console.log(`    │   ├─ Filter by department: ?department=DEPT_ID`);
+  console.log(`    │   ├─ Filter by date range: ?startDate=2025-01-01&endDate=2025-01-31`);
+  console.log(`    │   └─ Filter by leave type: ?leaveType=Sick Leave`);
+  console.log(`    ├─ Leave statistics: GET /api/reports/leaves/statistics`);
+  console.log(`    │   └─ Filter: ?year=2025&month=10&departmentId=DEPT_ID`);
+  console.log(`    ├─ Department summary: GET /api/reports/leaves/department-summary`);
+  console.log(`    └─ Employee report: GET /api/reports/leaves/employee/:employeeId`);
+  console.log(`  Payroll: http://localhost:${PORT}/api/payroll`);
   console.log('=================================');
 });
 

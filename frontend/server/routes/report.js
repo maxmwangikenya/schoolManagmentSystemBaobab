@@ -1,35 +1,25 @@
-// routes/reportRouter.js
+// routes/reportRoutes.js
 import express from 'express';
 import {
-  getAllReports,
-  getReportById,
-  createReport,
-  updateReport,
-  deleteReport,
-  getReportStatistics
+  getAllLeaves,
+  getLeaveStatistics,
+  getDepartmentLeaveSummary,
+  getEmployeeLeaveReport
 } from '../controllers/reportController.js';
-import { verifyUser } from '../middleware/authMiddleware.js'; // Adjust based on your auth middleware
+import { verifyUser } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-// ROUTES
+// Get all leaves with employee and department details
+router.get('/leaves', verifyUser, getAllLeaves);
 
-// Get report statistics/summary
-router.get('/statistics', verifyUser, getReportStatistics);
+// Get leave statistics
+router.get('/leaves/statistics', verifyUser, getLeaveStatistics);
 
-// Get all reports (with filters)
-router.get('/', verifyUser, getAllReports);
+// Get department-wise leave summary
+router.get('/leaves/department-summary', verifyUser, getDepartmentLeaveSummary);
 
-// Get single report by ID
-router.get('/:id', verifyUser, getReportById);
-
-// Create/Generate new report
-router.post('/', verifyUser, createReport);
-
-// Update report
-router.put('/:id', verifyUser, updateReport);
-
-// Delete report (soft delete)
-router.delete('/:id', verifyUser, deleteReport);
+// Get specific employee leave report
+router.get('/leaves/employee/:employeeId', verifyUser, getEmployeeLeaveReport);
 
 export default router;

@@ -4,6 +4,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import bcrypt from 'bcrypt';
+import Department from '../models/Department.js'
 
 // Configure multer for file upload
 const storage = multer.diskStorage({
@@ -35,7 +36,7 @@ const upload = multer({
   }
 });
 
-export const uploadSingle = upload.single('profileImage');
+export const uploadSingle = upload.single('image');
 
 // Get all employees
 export const getAllEmployees = async (req, res) => {
@@ -101,7 +102,7 @@ export const getAllEmployeeSalaries = async (req, res) => {
   }
 };
 
-// ✨ Get employee salary by ID
+//  Get employee salary by ID
 export const getEmployeeSalary = async (req, res) => {
   try {
     const { id } = req.params;
@@ -136,7 +137,7 @@ export const getEmployeeSalary = async (req, res) => {
   }
 };
 
-// ✨ Update employee salary
+// Update employee salary
 export const updateEmployeeSalary = async (req, res) => {
   try {
     const { id } = req.params;
@@ -251,8 +252,7 @@ export const addEmployee = async (req, res) => {
       await newUser.save();
       userId = newUser._id;
     }
-
-    // Create employee
+    let departmentName = await  Department.findOne({_id:department}) 
     const newEmployee = new Employee({
       name,
       email,
@@ -261,7 +261,7 @@ export const addEmployee = async (req, res) => {
       gender: gender || undefined,
       maritalStatus: maritalStatus || undefined,
       designation,
-      department,
+      department : departmentName.dep_name,
       salary: salary || 0,
       profileImage: req.file ? req.file.filename : undefined,
       user: userId

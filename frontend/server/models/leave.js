@@ -9,7 +9,7 @@ const leaveSchema = new mongoose.Schema({
   leaveType: {
     type: String,
     enum: {
-      values: ['casual', 'sick'],
+      values: ['casual', 'sick', 'annual'],
       message: 'Leave type must be either casual or sick'
     },
     required: [true, 'Leave type is required']

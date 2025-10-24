@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/authContext';
+import axios from 'axios';
 import {
   Users,
   CheckCircle,
@@ -15,13 +16,23 @@ import {
   Settings,
   ArrowRight,
   BarChart3,
-  Briefcase,
-  LogOut  // ✅ THIS IS THE LOGOUT ICON IMPORT
+  LogOut,
+  Wifi,
+  WifiOff
 } from 'lucide-react';
 
 const AdminDashboardHome = () => {
   const navigate = useNavigate();
-  const { user, logout } = useAuth(); // ✅ GET LOGOUT FUNCTION HERE
+  const { user, logout } = useAuth();
+
+  // Clock-In states
+  const [ipAddress, setIpAddress] = useState('');
+  const [isAllowedNetwork, setIsAllowedNetwork] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [clockingIn, setClockingIn] = useState(false);
+  const [todayAttendance, setTodayAttendance] = useState(null);
+  const [currentTime, setCurrentTime] = useState('');
+  const [currentDate, setCurrentDate] = useState('');
 
   // Stats data
   const stats = {
@@ -33,14 +44,96 @@ const AdminDashboardHome = () => {
     growthRate: 5
   };
 
-  // ✅ LOGOUT HANDLER WITH CONFIRMATION
+  // LOGOUT HANDLER WITH CONFIRMATION
   const handleLogout = () => {
     if (window.confirm('Are you sure you want to logout?')) {
       logout();
     }
   };
 
-  // ✅ QUICK ACTIONS - NOTICE THE LAST ITEM IS LOGOUT
+  // Clock-In Functions
+  const updateDateTime = () => {
+    const now = new Date();
+    setCurrentTime(now.toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit'
+    }));
+    setCurrentDate(now.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric',
+      year: 'numeric'
+    }));
+  };
+
+  const checkNetworkStatus = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get('/api/attendance/check-network');
+      setIpAddress(response.data.ipAddress);
+      setIsAllowedNetwork(response.data.isAllowed);
+    } catch (error) {
+      console.error('Error checking network:', error);
+      setIsAllowedNetwork(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const checkTodayAttendance = async () => {
+    try {
+      const response = await axios.get(`/api/attendance/today/${user?._id || user?.id}`);
+      setTodayAttendance(response.data.attendance);
+    } catch (error) {
+      console.error('Error checking attendance:', error);
+    }
+  };
+
+  const handleClockIn = async () => {
+    if (!isAllowedNetwork) {
+      alert('You must be on the company network to clock in');
+      return;
+    }
+
+    if (todayAttendance) {
+      alert('You have already clocked in today');
+      return;
+    }
+
+    try {
+      setClockingIn(true);
+      const response = await axios.post('/api/attendance/clock-in', {
+        userId: user?._id || user?.id,
+        ipAddress
+      });
+      
+      setTodayAttendance(response.data.attendance);
+      alert('Successfully clocked in!');
+    } catch (error) {
+      console.error('Error clocking in:', error);
+      alert(error.response?.data?.error || 'Failed to clock in');
+    } finally {
+      setClockingIn(false);
+    }
+  };
+
+  // Initialize Clock-In
+  useEffect(() => {
+    checkNetworkStatus();
+    checkTodayAttendance();
+    updateDateTime();
+    
+    const timer = setInterval(() => {
+      updateDateTime();
+    }, 60000); // Update every minute
+
+    return () => clearInterval(timer);
+  }, []);
+
+  // Get user role display
+  const userRole = user?.role === 'admin' ? 'Admin' : 'Employee';
+  const roleColor = user?.role === 'admin' ? 'bg-purple-500' : 'bg-blue-500';
+
+  // QUICK ACTIONS
   const quickActions = [
     { 
       icon: Users, 
@@ -66,6 +159,14 @@ const AdminDashboardHome = () => {
       bgColor: 'from-green-50 to-emerald-50',
       borderColor: 'border-green-200'
     },
+    {
+      icon: FileText,
+      label: 'Payroll',
+      color: 'from-emerald-500 to-teal-600',
+      action: () => navigate('/admin-dashboard/payroll'),
+      bgColor: 'from-emerald-50 to-teal-50',
+      borderColor: 'border-emerald-200'
+    },
     { 
       icon: Calendar, 
       label: 'Leaves', 
@@ -78,7 +179,7 @@ const AdminDashboardHome = () => {
       icon: FileText, 
       label: 'Reports', 
       color: 'from-indigo-500 to-purple-600', 
-      action: () => navigate('/admin-dashboard/reports'),
+      action: () => navigate('/admin-dashboard/report/ReportList'),
       bgColor: 'from-indigo-50 to-purple-50',
       borderColor: 'border-indigo-200'
     },
@@ -90,7 +191,6 @@ const AdminDashboardHome = () => {
       bgColor: 'from-gray-50 to-slate-50',
       borderColor: 'border-gray-200'
     },
-    // ✅✅✅ THIS IS THE LOGOUT BUTTON - LAST ITEM IN THE ARRAY ✅✅✅
     { 
       icon: LogOut, 
       label: 'Logout', 
@@ -154,60 +254,117 @@ const AdminDashboardHome = () => {
 
   return (
     <div className="p-6 md:p-8 space-y-6 md:space-y-8">
-      {/* Hero Welcome Banner */}
+      {/* Hero Welcome Banner with Clock-In */}
       <div className="relative bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-3xl shadow-2xl overflow-hidden">
         <div className="absolute inset-0 bg-black/5"></div>
         <div className="absolute top-0 right-0 w-72 h-72 md:w-96 md:h-96 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute bottom-0 left-0 w-72 h-72 md:w-96 md:h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
         
-        <div className="relative px-6 md:px-8 py-8 md:py-12">
+        <div className="relative px-6 md:px-8 py-8 md:py-10">
+          {/* Top Section - Date & Time (Top Right) */}
+          <div className="flex justify-end mb-4">
+            <div className="bg-white/10 backdrop-blur-sm px-4 py-2 rounded-xl border border-white/20">
+              <div className="flex items-center gap-3 text-white">
+                <Clock className="w-4 h-4" />
+                <div className="text-right">
+                  <p className="text-sm font-bold">{currentTime}</p>
+                  <p className="text-xs opacity-90">{currentDate}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Main Content Section */}
           <div className="flex flex-col lg:flex-row items-center justify-between gap-6 md:gap-8">
+            {/* Left - User Info */}
             <div className="flex flex-col md:flex-row items-center md:items-start gap-4 md:gap-6 text-center md:text-left">
               <div className="relative group">
                 <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 rounded-full blur-xl group-hover:blur-2xl transition-all"></div>
                 <img
-                  className="relative h-24 w-24 md:h-32 md:w-32 lg:h-36 lg:w-36 rounded-full object-cover border-4 border-white shadow-2xl transform group-hover:scale-105 transition-transform"
-                  src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'Admin')}&background=6366f1&color=fff&size=200`}
-                  alt={user?.name}
+                  src={user?.profileImage || `https://ui-avatars.com/api/?name=${user?.name || 'Admin'}&background=6366f1&color=fff`}
+                  alt="Profile"
+                  className="relative w-20 h-20 md:w-24 md:h-24 rounded-full border-4 border-white shadow-2xl object-cover"
                 />
-                <div className="absolute -bottom-2 -right-2 bg-green-500 w-8 h-8 md:w-10 md:h-10 rounded-full border-4 border-white flex items-center justify-center shadow-lg">
-                  <div className="w-3 h-3 md:w-4 md:h-4 bg-white rounded-full animate-pulse"></div>
+                {/* Role Badge on Avatar */}
+                <div className={`absolute -bottom-2 left-1/2 transform -translate-x-1/2 ${roleColor} text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg`}>
+                  {userRole}
                 </div>
               </div>
-
-              <div>
-                <div className="flex items-center justify-center md:justify-start gap-2 mb-1">
-                  <span className="text-2xl md:text-3xl">{greetingEmoji}</span>
-                  <p className="text-white/90 text-lg md:text-xl font-semibold">{greeting}!</p>
-                </div>
-                <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-2 md:mb-3 drop-shadow-lg">
-                  {user?.name || 'Admin Dashboard'}
+              <div className="mt-4 md:mt-0">
+                <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
+                  {greeting}, {user?.name || 'Admin'}! {greetingEmoji}
                 </h1>
-                <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 md:gap-3">
-                  <div className="flex items-center gap-2 bg-white/20 backdrop-blur-md px-3 md:px-4 py-1.5 md:py-2 rounded-full border border-white/30">
-                    <Briefcase className="w-3 h-3 md:w-4 md:h-4 text-white" />
-                    <span className="text-white font-semibold text-xs md:text-sm capitalize">{user?.role || 'Administrator'}</span>
-                  </div>
-                  <div className="flex items-center gap-2 bg-white/20 backdrop-blur-md px-3 md:px-4 py-1.5 md:py-2 rounded-full border border-white/30">
-                    <Building className="w-3 h-3 md:w-4 md:h-4 text-white" />
-                    <span className="text-white font-semibold text-xs md:text-sm">Organization Admin</span>
-                  </div>
-                </div>
-                <p className="text-white/80 mt-3 text-xs md:text-sm">Monitor and manage your organization efficiently 🚀</p>
+                <p className="text-white/90 text-base md:text-lg">
+                  Welcome back to your dashboard
+                </p>
               </div>
             </div>
 
-            <div className="bg-white/15 backdrop-blur-xl rounded-2xl md:rounded-3xl p-6 md:p-8 text-center border border-white/30 shadow-2xl">
-              <div className="text-white/80 text-xs md:text-sm mb-2 font-semibold uppercase tracking-wide">Today</div>
-              <div className="text-5xl md:text-6xl font-bold text-white mb-2">
-                {new Date().getDate()}
-              </div>
-              <div className="text-white text-sm md:text-base font-semibold mb-1">
-                {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-              </div>
-              <div className="text-white/70 text-xs md:text-sm font-medium">
-                {new Date().toLocaleDateString('en-US', { weekday: 'long' })}
-              </div>
+            {/* Right - Clock In Button */}
+            <div className="flex flex-col items-center gap-3">
+              {loading ? (
+                <div className="bg-white/20 backdrop-blur-sm px-8 py-4 rounded-2xl animate-pulse">
+                  <div className="h-12 w-40 bg-white/30 rounded"></div>
+                </div>
+              ) : (
+                <>
+                  <button
+                    onClick={handleClockIn}
+                    disabled={!isAllowedNetwork || clockingIn || todayAttendance}
+                    className={`relative flex items-center gap-4 px-8 py-4 rounded-2xl font-bold transition-all transform hover:scale-105 shadow-2xl ${
+                      todayAttendance
+                        ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white cursor-default'
+                        : isAllowedNetwork
+                        ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:shadow-green-500/50 cursor-pointer'
+                        : 'bg-gradient-to-r from-red-500 to-rose-600 text-white cursor-not-allowed opacity-90'
+                    } ${clockingIn ? 'animate-pulse' : ''}`}
+                  >
+                    {/* Network Icon */}
+                    <div className="flex items-center justify-center w-12 h-12 bg-white/20 rounded-xl">
+                      {isAllowedNetwork ? (
+                        <Wifi className="w-6 h-6" />
+                      ) : (
+                        <WifiOff className="w-6 h-6" />
+                      )}
+                    </div>
+
+                    {/* Button Text */}
+                    <div className="flex flex-col items-start">
+                      {clockingIn ? (
+                        <span className="text-lg">Clocking In...</span>
+                      ) : todayAttendance ? (
+                        <>
+                          <span className="text-xs opacity-90">Clocked In</span>
+                          <span className="text-lg font-bold">
+                            {new Date(todayAttendance.clockIn).toLocaleTimeString('en-US', {
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-xs opacity-90">
+                            {isAllowedNetwork ? 'Click to' : 'Network Required'}
+                          </span>
+                          <span className="text-lg font-bold">Clock In</span>
+                        </>
+                      )}
+                    </div>
+
+                    {todayAttendance && (
+                      <CheckCircle className="w-6 h-6 ml-2" />
+                    )}
+                  </button>
+
+                  {/* IP Address Display */}
+                  <div className="bg-white/10 backdrop-blur-sm px-4 py-1.5 rounded-lg">
+                    <p className="text-xs text-white/80">
+                      IP: <span className="font-mono font-semibold text-white">{ipAddress}</span>
+                    </p>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -215,36 +372,19 @@ const AdminDashboardHome = () => {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-        <div 
-          className="group relative bg-white rounded-2xl shadow-lg hover:shadow-2xl overflow-hidden transform hover:-translate-y-2 transition-all cursor-pointer"
-          onClick={() => navigate('/admin-dashboard/employees')}
-        >
-          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-full -mr-16 -mt-16"></div>
+        <div className="group relative bg-white rounded-2xl shadow-lg hover:shadow-2xl overflow-hidden transform hover:-translate-y-2 transition-all cursor-pointer"
+             onClick={() => navigate('/admin-dashboard/employees')}>
+          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-full -mr-16 -mt-16"></div>
           <div className="relative p-5 md:p-6">
             <div className="flex items-center justify-between mb-4">
-              <div className="bg-gradient-to-br from-blue-500 to-indigo-600 p-3 md:p-4 rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
+              <div className="bg-gradient-to-br from-blue-500 to-cyan-600 p-3 md:p-4 rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
                 <Users className="w-6 h-6 md:w-8 md:h-8 text-white" />
               </div>
               <ArrowRight className="w-5 h-5 md:w-6 md:h-6 text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
             </div>
             <h3 className="text-gray-600 text-xs md:text-sm font-bold uppercase tracking-wide mb-2">Total Employees</h3>
             <p className="text-4xl md:text-5xl font-bold text-gray-900 mb-2">{stats.totalEmployees}</p>
-            <p className="text-blue-600 text-xs md:text-sm font-semibold">+{stats.growthRate}% from last month</p>
-          </div>
-        </div>
-
-        <div className="group relative bg-white rounded-2xl shadow-lg hover:shadow-2xl overflow-hidden transform hover:-translate-y-2 transition-all cursor-pointer">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-full -mr-16 -mt-16"></div>
-          <div className="relative p-5 md:p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="bg-gradient-to-br from-green-500 to-emerald-600 p-3 md:p-4 rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
-                <CheckCircle className="w-6 h-6 md:w-8 md:h-8 text-white" />
-              </div>
-              <ArrowRight className="w-5 h-5 md:w-6 md:h-6 text-gray-400 group-hover:text-green-600 group-hover:translate-x-1 transition-all" />
-            </div>
-            <h3 className="text-gray-600 text-xs md:text-sm font-bold uppercase tracking-wide mb-2">Active Today</h3>
-            <p className="text-4xl md:text-5xl font-bold text-gray-900 mb-2">{stats.activeToday}</p>
-            <p className="text-green-600 text-xs md:text-sm font-semibold">{stats.attendanceRate}% attendance rate</p>
+            <p className="text-blue-600 text-xs md:text-sm font-semibold">{stats.activeToday} active today</p>
           </div>
         </div>
 
@@ -279,9 +419,23 @@ const AdminDashboardHome = () => {
             <p className="text-purple-600 text-xs md:text-sm font-semibold">Across organization</p>
           </div>
         </div>
+
+        <div className="group relative bg-white rounded-2xl shadow-lg hover:shadow-2xl overflow-hidden transform hover:-translate-y-2 transition-all cursor-pointer">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-full -mr-16 -mt-16"></div>
+          <div className="relative p-5 md:p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="bg-gradient-to-br from-green-500 to-emerald-600 p-3 md:p-4 rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
+                <TrendingUp className="w-6 h-6 md:w-8 md:h-8 text-white" />
+              </div>
+            </div>
+            <h3 className="text-gray-600 text-xs md:text-sm font-bold uppercase tracking-wide mb-2">Growth Rate</h3>
+            <p className="text-4xl md:text-5xl font-bold text-gray-900 mb-2">+{stats.growthRate}%</p>
+            <p className="text-green-600 text-xs md:text-sm font-semibold">This quarter</p>
+          </div>
+        </div>
       </div>
 
-      {/* ✅✅✅ QUICK ACTIONS SECTION - THIS IS WHERE LOGOUT APPEARS ✅✅✅ */}
+      {/* Quick Actions Section */}
       <div className="bg-white rounded-2xl md:rounded-3xl shadow-xl p-6 md:p-8">
         <div className="flex items-center gap-3 mb-6">
           <div className="bg-gradient-to-r from-yellow-400 to-orange-500 p-2.5 md:p-3 rounded-xl shadow-lg">
@@ -293,8 +447,7 @@ const AdminDashboardHome = () => {
           </div>
         </div>
         
-        {/* ✅ THE GRID BELOW RENDERS ALL QUICK ACTIONS INCLUDING LOGOUT (7 ITEMS) */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3 md:gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-8 gap-3 md:gap-4">
           {quickActions.map((action, index) => (
             <button
               key={index}

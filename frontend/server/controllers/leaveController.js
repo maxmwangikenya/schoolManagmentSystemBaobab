@@ -184,9 +184,7 @@ export const cancelLeave = async (req, res) => {
   }
 };
 
-// ======================
-// ADMIN FUNCTIONS
-// ======================
+
 
 // Get All Leave Applications (Admin)
 export const getAllLeaves = async (req, res) => {

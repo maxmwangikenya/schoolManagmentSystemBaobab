@@ -1,20 +1,22 @@
-// server.js (or index.js)
+// index.js
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import connectToDatabase from './db/db.js';
-
 // Import routes
 import authRouter from './routes/auth.js';
 import departmentRouter from './routes/department.js';
 import employeeRouter from './routes/employee.js';
-import salaryRouter from './routes/salary.js'; // ✅ ADDED: Salary routes
+import salaryRouter from './routes/salary.js';
 import leaveRouter from './routes/leave.js';
+import reportRouter from './routes/report.js';
+import payrollRouter from './routes/payroll.js';
 
 // Connect to database
 connectToDatabase();
 
+// ✅ CREATE EXPRESS APP (BEFORE USING IT!)
 const app = express();
 const __dirname = path.resolve();
 
@@ -27,7 +29,6 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl)
     if (!origin) return callback(null, true);
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
@@ -44,12 +45,14 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // Static files
 app.use('/public', express.static(path.join(__dirname, 'public')));
 
-// API Routes
+// API Routes (AFTER app is created)
 app.use('/api/auth', authRouter);
 app.use('/api/departments', departmentRouter);
 app.use('/api/employees', employeeRouter);
-app.use('/api/salary', salaryRouter); // ✅ ADDED: Salary routes
+app.use('/api/salary', salaryRouter); 
 app.use('/api/leaves', leaveRouter);
+app.use('/api/reports', reportRouter);
+app.use('/api/payroll', payrollRouter);
 
 // Health check route
 app.get('/', (req, res) => {
@@ -61,8 +64,9 @@ app.get('/', (req, res) => {
       auth: '/api/auth',
       departments: '/api/departments',
       employees: '/api/employees',
-      salary: '/api/salary', // ✅ ADDED
-      leaves: '/api/leaves'
+      salary: '/api/salary',
+      leaves: '/api/leaves',
+      reports: '/api/reports'
     }
   });
 });
@@ -114,13 +118,20 @@ app.listen(PORT, () => {
   console.log(`  Auth: http://localhost:${PORT}/api/auth`);
   console.log(`  Departments: http://localhost:${PORT}/api/departments`);
   console.log(`  Employees: http://localhost:${PORT}/api/employees`);
-  console.log(`  Salary: http://localhost:${PORT}/api/salary`); // ✅ ADDED
+  console.log(`  Salary: http://localhost:${PORT}/api/salary`);
   console.log(`    ├─ Get all salaries: GET /api/salary`);
   console.log(`    ├─ Add salary: POST /api/salary/add`);
   console.log(`    ├─ Salary history: GET /api/salary/history/:employeeId`);
   console.log(`    ├─ Salary summary: GET /api/salary/summary/:employeeId`);
   console.log(`    └─ Department stats: GET /api/salary/department/:departmentId/stats`);
   console.log(`  Leaves: http://localhost:${PORT}/api/leaves`);
+  console.log(`  Reports: http://localhost:${PORT}/api/reports`);
+  console.log(`    ├─ Get all reports: GET /api/reports`);
+  console.log(`    ├─ Get statistics: GET /api/reports/statistics`);
+  console.log(`    ├─ Generate report: POST /api/reports`);
+  console.log(`    ├─ Get report by ID: GET /api/reports/:id`);
+  console.log(`    ├─ Update report: PUT /api/reports/:id`);
+  console.log(`    └─ Delete report: DELETE /api/reports/:id`);
   console.log('=================================');
 });
 

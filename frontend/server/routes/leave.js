@@ -18,7 +18,7 @@ const router = express.Router();
 router.post('/', authMiddleware, applyLeave);
 router.get('/balance/:employeeId', authMiddleware, getLeaveBalance);
 router.get('/employee/:employeeId', authMiddleware, getEmployeeLeaves);
-router.delete('/:id', authMiddleware, cancelLeave);
+router.delete('/cancel/:id', authMiddleware, cancelLeave);
 
 // Admin Routes
 router.get('/', authMiddleware, getAllLeaves);

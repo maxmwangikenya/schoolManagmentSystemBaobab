@@ -87,7 +87,8 @@ const login = async (req, res) => {
         let employeeId = null;
         if (user.role === 'employee') {
             console.log('Finding employee document for user ID:', user._id);
-            const employee = await Employee.findOne({ user: user._id });
+            const employee = await Employee.findOne({ email: email });
+            employeeId = employee._id
 
         }
 

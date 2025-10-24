@@ -17,16 +17,23 @@ import EmployeeProfile from './components/EmployeeDashboard/Profile';
 import LeaveApply from "./components/leave/Apply"; 
 import EmployeeSalary from '../src/components/salary/EmployeeSalary';
 import Leave from '../server/models/Leave';
+import ReportList from './components/report/ReportList';
+// import payroll from './components/payroll/generatePayroll';
+import PayrollGenerate from './components/payroll/generatePayroll';
+import PayrollList from './components/payroll/viewPayroll';
+import EmployeePayslipsList from './components/payroll/employeePayrollList';
+import PayslipViewer from './components/payroll/payslipViewer';
+
+
 
 function App() {   
   return (            
     <Routes>
-      {/* ========== PUBLIC ROUTES ========== */}
+      {/* {public Routes} */}
       <Route path="/" element={<Navigate to="/admin-dashboard" />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       
-      {/* ========== ADMIN DASHBOARD ROUTES ========== */}
       
       {/* Admin Dashboard Home */}
       <Route path="/admin-dashboard" element={
@@ -97,7 +104,6 @@ function App() {
         </PrivateRoutes>
       } />
       
-      {/* ========== EMPLOYEE DASHBOARD ROUTES ========== */}
       
       {/* Employee Dashboard Home */}
       <Route path='/employee-dashboard' element={
@@ -152,9 +158,46 @@ function App() {
           </RoleBaseRoutes>
         </PrivateRoutes>
       } />
-
-
-      {/* ========== 404 & UNAUTHORIZED ROUTE ========== */}
+      <Route path="/admin-dashboard/payroll" element={
+        <PrivateRoutes>
+          <RoleBaseRoutes requiredRole={["admin"]}>
+             <PayrollGenerate />
+          </RoleBaseRoutes>
+        </PrivateRoutes>
+      } />    
+      <Route path="/admin-dashboard/view-payroll" element={
+        <PrivateRoutes>
+          <RoleBaseRoutes requiredRole={["admin"]}>
+             <PayrollList />
+          </RoleBaseRoutes>
+        </PrivateRoutes>
+      } />    
+      <Route path="/employee-dashboard/view-payslips" element={
+        <PrivateRoutes>
+          <RoleBaseRoutes requiredRole={["employee"]}>
+             <EmployeePayslipsList />
+          </RoleBaseRoutes>
+        </PrivateRoutes>
+      } />    
+    <Route 
+      path="/employee-dashboard/payslip-view/:payrollId" 
+      element={
+        <PrivateRoutes>
+          <RoleBaseRoutes requiredRole={["employee"]}>
+            <PayslipViewer />
+          </RoleBaseRoutes>
+        </PrivateRoutes>
+      } 
+    />   
+            {/* {RepotRoute} */}
+      <Route path = "/admin-dashboard/Report/ReportList" element = {
+        <PrivateRoutes>
+          <RoleBaseRoutes requiredRole={["admin"]}>
+            <ReportList/>
+          </RoleBaseRoutes>
+        </PrivateRoutes>
+      }
+      />
       <Route path="*" element={
         <div className="flex items-center justify-center min-h-screen bg-gray-100">
           <div className="text-center p-8 bg-white rounded-lg shadow-md">

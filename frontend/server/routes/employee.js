@@ -9,35 +9,27 @@ import {
   uploadSingle,
   getEmployeeSalary,
   updateEmployeeSalary,
-  getAllEmployeeSalaries
+  getAllEmployeeSalaries,
+
+  // NEW
+  getEmployeesByDepartmentStats,
+  getEmployeesByDepartment
 } from '../controllers/employeeController.js';
 
 const router = express.Router();
 
-// ⚠️ IMPORTANT: Order matters! Specific routes BEFORE dynamic :id routes
+// ⚠️ specific routes first
+router.get('/stats/by-department', verifyUser, getEmployeesByDepartmentStats);
+router.get('/by-department/:depName', verifyUser, getEmployeesByDepartment);
 
-// GET all employees
+// existing
 router.get('/', verifyUser, getAllEmployees);
-
-// GET all employee salaries (for salary management page)
 router.get('/salaries', verifyUser, getAllEmployeeSalaries);
-
-// GET specific employee salary
 router.get('/:id/salary', verifyUser, getEmployeeSalary);
-
-// PUT update specific employee salary
 router.put('/:id/salary', verifyUser, updateEmployeeSalary);
-
-// GET single employee by ID
 router.get('/:id', verifyUser, getEmployeeById);
-
-// POST add new employee
 router.post('/add', verifyUser, uploadSingle, addEmployee);
-
-// PUT update employee (full update, including salary)
 router.put('/:id', verifyUser, uploadSingle, updateEmployee);
-
-// DELETE employee
 router.delete('/:id', verifyUser, deleteEmployee);
 
 export default router;

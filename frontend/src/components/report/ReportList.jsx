@@ -1,17 +1,19 @@
+// src/components/report/ReportList.jsx
 import React, { useState } from 'react';
 import {
   FileText,
   Building,
   BarChart3,
-  Users,
-  Calendar,
-  TrendingUp,
-  Download,
-  Filter
+  DollarSign,
+  Users
 } from 'lucide-react';
-import LeaveReportList from './Leavestaticsdashboard';
-import DepartmentLeaveSummary from './DepartmentLeaveSummary';
-import LeaveStatisticsDashboard from './Leavestaticsdashboard';
+
+// Make sure these filenames match your folder exactly:
+import LeaveReportList from './Leavereportlist.jsx';
+import DepartmentLeaveSummary from './Departmentleavesummary.jsx';
+import LeaveStatisticsDashboard from './Leavestaticsdashboard.jsx';
+import SalarySummaryDashboard from './SalarySummaryDashboard.jsx';
+import DepartmentHeadcountChart from './DepartmentHeadcountChart.jsx'; // new chart we discussed
 
 const ReportList = () => {
   const [activeTab, setActiveTab] = useState('list');
@@ -37,12 +39,30 @@ const ReportList = () => {
     },
     {
       id: 'statistics',
-      name: 'Statistics',
+      name: 'Leave Statistics',
       icon: BarChart3,
       description: 'Analyze leave trends',
       color: 'from-green-600 to-emerald-600',
       bgColor: 'bg-green-50',
       borderColor: 'border-green-600'
+    },
+    {
+      id: 'headcount',
+      name: 'Headcount by Dept',
+      icon: Users,
+      description: 'Employees per department',
+      color: 'from-sky-600 to-indigo-600',
+      bgColor: 'bg-sky-50',
+      borderColor: 'border-sky-600'
+    },
+    {
+      id: 'salary',
+      name: 'Salary Summary',
+      icon: DollarSign,
+      description: 'Payroll KPIs & charts',
+      color: 'from-indigo-600 to-purple-600',
+      bgColor: 'bg-indigo-50',
+      borderColor: 'border-indigo-600'
     }
   ];
 
@@ -54,6 +74,10 @@ const ReportList = () => {
         return <DepartmentLeaveSummary />;
       case 'statistics':
         return <LeaveStatisticsDashboard />;
+      case 'headcount':
+        return <DepartmentHeadcountChart />;
+      case 'salary':
+        return <SalarySummaryDashboard />;
       default:
         return <LeaveReportList />;
     }
@@ -71,13 +95,13 @@ const ReportList = () => {
             <div>
               <h1 className="text-4xl font-bold text-gray-800">Reports Center</h1>
               <p className="text-gray-600 mt-1">
-                Comprehensive leave management reports and analytics
+                Comprehensive leave, headcount, and payroll analytics
               </p>
             </div>
           </div>
 
           {/* Tab Navigation */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -86,45 +110,33 @@ const ReportList = () => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`relative group p-6 rounded-xl transition-all transform hover:scale-105 ${
+                  type="button"
+                  className={`relative group p-6 rounded-xl transition-all transform hover:scale-[1.02] text-left ${
                     isActive
                       ? `${tab.bgColor} border-2 ${tab.borderColor} shadow-lg`
                       : 'bg-white border-2 border-gray-200 hover:border-gray-300 hover:shadow-md'
                   }`}
+                  aria-pressed={isActive}
                 >
                   <div className="flex items-start gap-4">
                     <div
                       className={`p-3 rounded-xl shadow-md transition-transform group-hover:scale-110 ${
-                        isActive
-                          ? `bg-gradient-to-r ${tab.color}`
-                          : 'bg-gray-100'
+                        isActive ? `bg-gradient-to-r ${tab.color}` : 'bg-gray-100'
                       }`}
                     >
-                      <Icon
-                        className={`w-6 h-6 ${
-                          isActive ? 'text-white' : 'text-gray-600'
-                        }`}
-                      />
+                      <Icon className={`w-6 h-6 ${isActive ? 'text-white' : 'text-gray-600'}`} />
                     </div>
-                    <div className="text-left flex-1">
-                      <h3
-                        className={`text-lg font-bold mb-1 ${
-                          isActive ? 'text-gray-800' : 'text-gray-700'
-                        }`}
-                      >
+                    <div className="flex-1">
+                      <h3 className={`text-lg font-bold mb-1 ${isActive ? 'text-gray-800' : 'text-gray-700'}`}>
                         {tab.name}
                       </h3>
-                      <p
-                        className={`text-sm ${
-                          isActive ? 'text-gray-600' : 'text-gray-500'
-                        }`}
-                      >
+                      <p className={`text-sm ${isActive ? 'text-gray-600' : 'text-gray-500'}`}>
                         {tab.description}
                       </p>
                     </div>
                   </div>
                   {isActive && (
-                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-b-lg"></div>
+                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-b-lg" />
                   )}
                 </button>
               );
@@ -134,9 +146,7 @@ const ReportList = () => {
       </div>
 
       {/* Content Area */}
-      <div className="max-w-7xl mx-auto">
-        {renderContent()}
-      </div>
+      <div className="max-w-7xl mx-auto">{renderContent()}</div>
     </div>
   );
 };

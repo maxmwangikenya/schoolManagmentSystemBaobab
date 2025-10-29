@@ -53,7 +53,7 @@ function App() {
         </PrivateRoutes>
       } />
       
-      <Route path="/admin-dashboard/employees/add" element={
+      <Route path="/admin-dashboard/add-employee" element={
         <PrivateRoutes>
           <RoleBaseRoutes requiredRole={["admin"]}>
             <Add />
@@ -87,7 +87,7 @@ function App() {
         </PrivateRoutes>
       } />
       
-      <Route path="/admin-dashboard/departments/add" element={
+      <Route path="/admin-dashboard/add-department" element={
         <PrivateRoutes>
           <RoleBaseRoutes requiredRole={["admin"]}>
             <AddDepartmentList />

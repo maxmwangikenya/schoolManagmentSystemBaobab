@@ -357,7 +357,66 @@ export const addEmployee = async (req, res) => {
     });
   }
 };
+// ------------- NEW: group employees by department -------------
+export const getEmployeesByDepartmentStats = async (req, res) => {
+  try {
+    // optional: search filter (?q=engi) to match partial dep_name
+    const { q } = req.query;
+    const match = {};
 
+    if (q && q.trim()) {
+      match.department = { $regex: q.trim(), $options: 'i' };
+    }
+
+    const stats = await Employee.aggregate([
+      { $match: match },
+      {
+        $group: {
+          _id: { $ifNull: ['$department', 'Unassigned'] },
+          count: { $sum: 1 },
+
+          // Uncomment these if you want salary totals:
+          // totalGross: { $sum: { $ifNull: ['$salary.grossSalary', 0] } },
+          // totalNet: { $sum: { $ifNull: ['$salary.netSalary', 0] } },
+        }
+      },
+      { $sort: { count: -1 } }
+    ]);
+
+    // shape result
+    const result = stats.map(s => ({
+      department: s._id,
+      count: s.count,
+      // totalGross: s.totalGross,
+      // totalNet: s.totalNet,
+    }));
+
+    res.json({ success: true, data: result });
+  } catch (error) {
+    console.error('getEmployeesByDepartmentStats error:', error);
+    res.status(500).json({ success: false, error: 'Failed to load department stats' });
+  }
+};
+
+// ------------- NEW: list employees in a specific department -------------
+export const getEmployeesByDepartment = async (req, res) => {
+  try {
+    const { depName } = req.params;
+
+    if (!depName) {
+      return res.status(400).json({ success: false, error: 'Department name is required' });
+    }
+
+    const employees = await Employee.find({ department: depName })
+      .populate('user', 'name email')
+      .sort({ createdAt: -1 });
+
+    res.json({ success: true, department: depName, count: employees.length, employees });
+  } catch (error) {
+    console.error('getEmployeesByDepartment error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch employees by department' });
+  }
+};
 // Update employee
 export const updateEmployee = async (req, res) => {
   try {

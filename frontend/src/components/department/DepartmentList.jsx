@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import {
@@ -18,89 +18,117 @@ import {
 
 const DepartmentList = () => {
   const navigate = useNavigate();
+  const API_BASE_URL = import.meta.env.VITE_BACKENDAPI;
+
+  // Data
   const [departments, setDepartments] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [pages, setPages] = useState(1);
+
+  // UI state
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(null);
+  const [editLoading, setEditLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState('');
+
+  // Search & pagination
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
+
+  // Modals
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [departmentToDelete, setDepartmentToDelete] = useState(null);
-  const [successMessage, setSuccessMessage] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const API_BASE_URL = import.meta.env.VITE_BACKENDAPI;
-  
-  // Edit modal states
+
   const [showEditModal, setShowEditModal] = useState(false);
   const [departmentToEdit, setDepartmentToEdit] = useState(null);
-  const [editLoading, setEditLoading] = useState(false);
   const [editFormData, setEditFormData] = useState({
     dep_name: '',
     description: ''
   });
 
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 6;
-
-  // Filter departments based on search term
-  const filteredDepartments = departments.filter(department =>
-    department?.dep_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (department?.description && department.description.toLowerCase().includes(searchTerm.toLowerCase()))
+  const authHeaders = useMemo(
+    () => ({
+      Authorization: `Bearer ${localStorage.getItem('token')}`
+    }),
+    []
   );
 
-  // Reset to first page when search changes
+  // Fetch departments from API (server-side search + pagination)
   useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm]);
+    const ctrl = new AbortController();
+    const fetchDepartments = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const params = {
+          q: searchTerm || '',
+          page: currentPage,
+          limit: itemsPerPage,
+          sort: 'dep_name:asc,updatedAt:desc'
+        };
+
+        const res = await axios.get(`${API_BASE_URL}/api/departments`, {
+          headers: authHeaders,
+          params,
+          signal: ctrl.signal
+        });
+
+        const { success, departments: rows, total, pages } = res.data || {};
+        if (success && Array.isArray(rows)) {
+          setDepartments(rows);
+          setTotal(typeof total === 'number' ? total : rows.length);
+          setPages(typeof pages === 'number' ? pages : 1);
+        } else {
+          setError('Failed to fetch departments: Invalid response format');
+        }
+      } catch (err) {
+        if (axios.isCancel(err)) return;
+        console.error('Error fetching departments:', err);
+        if (err.response?.status === 401 || err.response?.status === 403) {
+          setError('Your session expired or you are not authorized. Please log in again.');
+          // Optionally: navigate('/login');
+        } else {
+          setError('Error loading departments: ' + (err.response?.data?.error || err.message));
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDepartments();
+    return () => ctrl.abort();
+  }, [API_BASE_URL, authHeaders, currentPage, searchTerm]);
+
+  // Auto-clear errors after a few seconds
+  useEffect(() => {
+    if (!error) return;
+    const t = setTimeout(() => setError(null), 5000);
+    return () => clearTimeout(t);
+  }, [error]);
 
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value);
+    setCurrentPage(1); // reset to first page on new search
   };
 
   const clearSearch = () => {
     setSearchTerm('');
+    setCurrentPage(1);
   };
 
-  // Fetch departments
-  useEffect(() => {
-    fetchDepartments();
-  }, []);
-
-  const fetchDepartments = async () => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`${API_BASE_URL}/api/departments`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (response.data.success && Array.isArray(response.data.departments)) {
-        setDepartments(response.data.departments);
-      } else {
-        setError('Failed to fetch departments: Invalid response format');
-      }
-    } catch (err) {
-      console.error('Error fetching departments:', err);
-      setError('Error loading departments: ' + (err.response?.data?.error || err.message));
-    } finally {
-      setLoading(false);
-    }
+  const handlePageChange = (page) => {
+    if (page >= 1 && page <= pages) setCurrentPage(page);
   };
 
+  // ---- Edit Logic ----
   const handleEdit = (department) => {
-    if (!department) {
-      console.error('Department is undefined');
-      setError('Cannot edit: Department data is missing');
-      return;
-    }
-
-    if (!department._id || !department.dep_name) {
-      console.error('Invalid department data:', department);
+    if (!department || !department._id || !department.dep_name) {
       setError('Cannot edit: Invalid department data');
       return;
     }
-
     setDepartmentToEdit(department);
     setEditFormData({
       dep_name: department.dep_name || '',
@@ -111,20 +139,16 @@ const DepartmentList = () => {
 
   const handleEditInputChange = (e) => {
     const { name, value } = e.target;
-    setEditFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setEditFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleEditSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!editFormData.dep_name.trim()) {
       setError('Department name is required');
       return;
     }
-
     if (!departmentToEdit?._id) {
       setError('Invalid department data');
       return;
@@ -132,35 +156,29 @@ const DepartmentList = () => {
 
     try {
       setEditLoading(true);
-      const token = localStorage.getItem('token');
-      
       const response = await axios.patch(
-        `${API_BASE_URL}/api/departments/${departmentToEdit._id}`, 
+        `${API_BASE_URL}/api/departments/${departmentToEdit._id}`,
         {
           dep_name: editFormData.dep_name.trim(),
-          description: editFormData.description.trim()
+          description: (editFormData.description || '').trim()
         },
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
+        { headers: { ...authHeaders, 'Content-Type': 'application/json' } }
       );
 
-      if (response.data.success) {
-        setDepartments(departments.map(dep => 
-          dep._id === departmentToEdit._id 
-            ? { ...dep, dep_name: editFormData.dep_name, description: editFormData.description }
-            : dep
-        ));
-        
+      if (response.data?.success) {
+        // Update in place without refetch
+        setDepartments((prev) =>
+          prev.map((dep) =>
+            dep._id === departmentToEdit._id
+              ? { ...dep, dep_name: editFormData.dep_name, description: editFormData.description }
+              : dep
+          )
+        );
         setSuccessMessage('Department updated successfully!');
         setShowEditModal(false);
-        
         setTimeout(() => setSuccessMessage(''), 3000);
       } else {
-        setError(response.data.error || 'Failed to update department');
+        setError(response.data?.error || 'Failed to update department');
       }
     } catch (err) {
       console.error('Error updating department:', err);
@@ -173,47 +191,36 @@ const DepartmentList = () => {
   const cancelEdit = () => {
     setShowEditModal(false);
     setDepartmentToEdit(null);
-    setEditFormData({
-      dep_name: '',
-      description: ''
-    });
+    setEditFormData({ dep_name: '', description: '' });
   };
 
+  // ---- Delete Logic ----
   const handleDeleteClick = (department) => {
     if (!department || !department._id) {
-      console.error('Invalid department for deletion:', department);
       setError('Cannot delete: Invalid department data');
       return;
     }
-
     setDepartmentToDelete(department);
     setShowDeleteModal(true);
   };
 
   const confirmDelete = async () => {
-    if (!departmentToDelete || !departmentToDelete._id) {
-      setError('Invalid department data for deletion');
+    if (!departmentToDelete?._id) {
       setShowDeleteModal(false);
       return;
     }
-
     try {
       setDeleteLoading(departmentToDelete._id);
-      const token = localStorage.getItem('token');
-      
-      const response = await axios.delete(`${API_BASE_URL}/api/departments/${departmentToDelete._id}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.data.success) {
-        setDepartments(departments.filter(dep => dep._id !== departmentToDelete._id));
+      const response = await axios.delete(
+        `${API_BASE_URL}/api/departments/${departmentToDelete._id}`,
+        { headers: authHeaders }
+      );
+      if (response.data?.success) {
+        setDepartments((prev) => prev.filter((d) => d._id !== departmentToDelete._id));
         setSuccessMessage('Department deleted successfully!');
-        
         setTimeout(() => setSuccessMessage(''), 3000);
       } else {
-        setError(response.data.error || 'Failed to delete department');
+        setError(response.data?.error || 'Failed to delete department');
       }
     } catch (err) {
       console.error('Error deleting department:', err);
@@ -230,13 +237,7 @@ const DepartmentList = () => {
     setDepartmentToDelete(null);
   };
 
-  useEffect(() => {
-    if (error) {
-      const timer = setTimeout(() => setError(null), 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [error]);
-
+  // ---- UI ----
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 p-6 md:p-8 flex items-center justify-center">
@@ -250,17 +251,6 @@ const DepartmentList = () => {
       </div>
     );
   }
-
-  // Pagination Logic
-  const totalPages = Math.ceil(filteredDepartments.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const currentDepartments = filteredDepartments.slice(startIndex, startIndex + itemsPerPage);
-
-  const handlePageChange = (page) => {
-    if (page >= 1 && page <= totalPages) {
-      setCurrentPage(page);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 p-6 md:p-8">
@@ -290,7 +280,7 @@ const DepartmentList = () => {
                     </h1>
                   </div>
                   <p className="text-white/90 text-sm md:text-base mt-2">
-                    Manage your organization's departments • {departments.length} Total
+                    Manage your organization's departments • {total} Total
                   </p>
                 </div>
               </div>
@@ -312,7 +302,7 @@ const DepartmentList = () => {
             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
-              placeholder="Search departments by name or description..."
+              placeholder="Search departments by name, code, or description..."
               value={searchTerm}
               onChange={handleSearchChange}
               className="w-full pl-12 pr-12 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-gray-900 placeholder-gray-400 font-medium"
@@ -357,7 +347,7 @@ const DepartmentList = () => {
         )}
 
         {/* Departments Grid */}
-        {filteredDepartments.length === 0 ? (
+        {departments.length === 0 ? (
           <div className="bg-white rounded-3xl shadow-xl p-12 text-center">
             <div className="bg-gradient-to-br from-blue-100 to-purple-100 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6">
               <Building className="w-12 h-12 text-blue-600" />
@@ -366,10 +356,9 @@ const DepartmentList = () => {
               {searchTerm ? 'No departments found' : 'No departments yet'}
             </h3>
             <p className="text-gray-600 mb-6 max-w-md mx-auto">
-              {searchTerm 
-                ? 'Try adjusting your search criteria to find what you\'re looking for.' 
-                : 'Get started by creating your first department to organize your organization.'
-              }
+              {searchTerm
+                ? "Try adjusting your search criteria to find what you're looking for."
+                : 'Get started by creating your first department to organize your organization.'}
             </p>
             {!searchTerm && (
               <Link
@@ -385,14 +374,15 @@ const DepartmentList = () => {
           <div>
             {/* Department Cards Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-              {currentDepartments.map((department, index) => {
-                if (!department || !department._id) {
-                  return null;
-                }
-                
+              {departments.map((department) => {
+                if (!department || !department._id) return null;
+                const created = department.createdAt ? new Date(department.createdAt).toLocaleDateString() : 'N/A';
+                const employeeCount =
+                  typeof department.employeeCount === 'number' ? department.employeeCount : undefined;
+
                 return (
-                  <div 
-                    key={department._id} 
+                  <div
+                    key={department._id}
                     className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-gray-100 overflow-hidden"
                   >
                     {/* Gradient Header */}
@@ -412,24 +402,52 @@ const DepartmentList = () => {
 
                     {/* Card Content */}
                     <div className="pt-16 px-6 pb-6">
-                      <h3 className="text-xl font-bold text-gray-900 mb-2">{department.dep_name || 'Unnamed Department'}</h3>
+                      <div className="flex items-center justify-between mb-1">
+                        <h3 className="text-xl font-bold text-gray-900">
+                          {department.dep_name || 'Unnamed Department'}
+                        </h3>
+                        {/* Status badges if provided */}
+                        <div className="flex gap-2">
+                          {department.isArchived ? (
+                            <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700 font-semibold">
+                              Archived
+                            </span>
+                          ) : (
+                            <span className="px-2 py-1 text-xs rounded-full bg-emerald-100 text-emerald-700 font-semibold">
+                              {department.isActive === false ? 'Inactive' : 'Active'}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {department.dep_code && (
+                        <p className="text-xs font-semibold text-indigo-700 mb-2 tracking-widest">
+                          CODE: {department.dep_code}
+                        </p>
+                      )}
+
                       <p className="text-sm text-gray-600 mb-4 line-clamp-2 min-h-[2.5rem]">
                         {department.description || 'No description provided'}
                       </p>
-                      
+
                       <div className="space-y-2 mb-4">
                         <div className="flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg px-3 py-2">
                           <span className="text-xs font-medium text-gray-600 flex items-center gap-1">
                             <Calendar className="w-3 h-3" />
                             Created
                           </span>
-                          <span className="text-xs font-bold text-blue-700">
-                            {department.createdAt ? new Date(department.createdAt).toLocaleDateString() : 'N/A'}
-                          </span>
+                          <span className="text-xs font-bold text-blue-700">{created}</span>
                         </div>
+
+                        {typeof employeeCount !== 'undefined' && (
+                          <div className="flex items-center justify-between bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg px-3 py-2">
+                            <span className="text-xs font-medium text-gray-600">Employees</span>
+                            <span className="text-xs font-bold text-indigo-700">{employeeCount}</span>
+                          </div>
+                        )}
                       </div>
 
-                      {/* Action Buttons */}
+                      {/* Actions */}
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleEdit(department)}
@@ -460,7 +478,7 @@ const DepartmentList = () => {
             </div>
 
             {/* Pagination */}
-            {totalPages > 1 && (
+            {pages > 1 && (
               <div className="bg-white rounded-2xl shadow-xl p-6">
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                   <button
@@ -471,10 +489,10 @@ const DepartmentList = () => {
                     <ChevronLeft className="w-5 h-5" />
                     Previous
                   </button>
-                  
+
                   <div className="flex items-center gap-2">
-                    {[...Array(totalPages)].map((_, index) => {
-                      const pageNumber = index + 1;
+                    {Array.from({ length: pages }).map((_, idx) => {
+                      const pageNumber = idx + 1;
                       return (
                         <button
                           key={pageNumber}
@@ -490,10 +508,10 @@ const DepartmentList = () => {
                       );
                     })}
                   </div>
-                  
+
                   <button
                     onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages}
+                    disabled={currentPage === pages}
                     className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 rounded-xl hover:from-gray-200 hover:to-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-semibold shadow-md hover:shadow-lg"
                   >
                     Next
@@ -502,7 +520,7 @@ const DepartmentList = () => {
                 </div>
 
                 <div className="text-center mt-4 text-sm text-gray-600 font-medium">
-                  Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, filteredDepartments.length)} of {filteredDepartments.length} departments
+                  Showing page {currentPage} of {pages} • {total} total
                 </div>
               </div>
             )}
@@ -512,8 +530,14 @@ const DepartmentList = () => {
 
       {/* Edit Modal */}
       {showEditModal && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={cancelEdit}>
-          <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto transform transition-all" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={cancelEdit}
+        >
+          <div
+            className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto transform transition-all"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Header */}
             <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 p-8 rounded-t-3xl relative overflow-hidden">
               <div className="absolute inset-0 bg-black/5"></div>
@@ -597,8 +621,14 @@ const DepartmentList = () => {
 
       {/* Delete Modal */}
       {showDeleteModal && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={cancelDelete}>
-          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full transform transition-all" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={cancelDelete}
+        >
+          <div
+            className="bg-white rounded-3xl shadow-2xl max-w-md w-full transform transition-all"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="p-8">
               <div className="flex items-center gap-4 mb-6">
                 <div className="bg-red-100 p-4 rounded-2xl">

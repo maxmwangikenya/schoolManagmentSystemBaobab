@@ -29,11 +29,7 @@ export const verifyUser = async (req, res, next) => {
         // Verify token
 
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_key');
-        console.log('SUCCESS: Token verified:', {
-            userId: decoded._id || decoded.id,
-            role: decoded.role,
-            email: decoded.email
-        });
+
         
         // Try to find user in User model first (Admin)
 
@@ -51,12 +47,6 @@ export const verifyUser = async (req, res, next) => {
                 error: 'User not found'
             });
         }
-
-        console.log('SUCCESS: User found:', {
-            id: user._id,
-            name: user.name || `${user.firstName} ${user.lastName}`,
-            role: user.role
-        });
 
         // Attach user to request with consistent property names
         req.user = {

@@ -19,13 +19,13 @@ const router = express.Router();
 // GET all employees
 router.get('/', verifyUser, getAllEmployees);
 
-// ✨ GET all employee salaries (for salary management page)
+// GET all employee salaries (for salary management page)
 router.get('/salaries', verifyUser, getAllEmployeeSalaries);
 
-// ✨ GET specific employee salary
+// GET specific employee salary
 router.get('/:id/salary', verifyUser, getEmployeeSalary);
 
-// ✨ PUT update specific employee salary
+// PUT update specific employee salary
 router.put('/:id/salary', verifyUser, updateEmployeeSalary);
 
 // GET single employee by ID

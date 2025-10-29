@@ -1,16 +1,30 @@
-import express from 'express';
-import { verifyUser } from '../middleware/authMiddleware.js';
-import { addDepartment, getDepartments, updateDepartment, deleteDepartment } from '../controllers/departmentControler.js';
+// server/routes/departmentRoutes.js
+import { Router } from "express";
+import { verifyUser, adminMiddleware } from "../middleware/authMiddleware.js";
+import {
+  createDepartment,
+  listDepartments,
+  getDepartment,
+  updateDepartment,
+  archiveDepartment,
+  restoreDepartment,
+  activateDepartment,
+  deactivateDepartment
+} from "../controllers/departmentController.js";
 
-const router = express.Router();
+const router = Router();
 
-router.post('/add', verifyUser, addDepartment);
-router.get('/', verifyUser, getDepartments);             
+// CRUD + search/pagination
+router.post("/", verifyUser, adminMiddleware, createDepartment);
+router.get("/", verifyUser, listDepartments);
+router.get("/:id", verifyUser, getDepartment);
+router.put("/:id", verifyUser, adminMiddleware, updateDepartment);
+router.patch("/:id", verifyUser, adminMiddleware, updateDepartment);
 
-// ✅ Support BOTH PUT and PATCH for updating
-router.put('/:id', verifyUser, updateDepartment);
-router.patch('/:id', verifyUser, updateDepartment);  // ADD THIS LINE
-
-router.delete('/:id', verifyUser, deleteDepartment);      
+// Lifecycle
+router.post("/:id/archive", verifyUser, adminMiddleware, archiveDepartment);
+router.post("/:id/restore", verifyUser, adminMiddleware, restoreDepartment);
+router.post("/:id/activate", verifyUser, adminMiddleware, activateDepartment);
+router.post("/:id/deactivate", verifyUser, adminMiddleware, deactivateDepartment);
 
 export default router;

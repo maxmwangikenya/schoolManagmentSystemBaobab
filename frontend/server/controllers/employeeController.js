@@ -1,10 +1,11 @@
 import Employee from '../models/Employee.js';
 import User from '../models/User.js';
+import Department from '../models/Department.js';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import bcrypt from 'bcrypt';
-import Department from '../models/Department.js'
+import { calculateCompleteSalary, formatPhoneNumber, validateNationalId, validatePhoneNumber } from '../utils/salaryCalculations.js';
 
 // Configure multer for file upload
 const storage = multer.diskStorage({
@@ -81,7 +82,7 @@ export const getEmployeeById = async (req, res) => {
   }
 };
 
-// ✨ Get all employee salaries (for salary management page)
+// Get all employee salaries
 export const getAllEmployeeSalaries = async (req, res) => {
   try {
     const employees = await Employee.find()
@@ -102,7 +103,7 @@ export const getAllEmployeeSalaries = async (req, res) => {
   }
 };
 
-//  Get employee salary by ID
+// Get employee salary by ID
 export const getEmployeeSalary = async (req, res) => {
   try {
     const { id } = req.params;
@@ -125,7 +126,7 @@ export const getEmployeeSalary = async (req, res) => {
         name: employee.name,
         designation: employee.designation,
         department: employee.department,
-        salary: employee.salary || 0
+        salary: employee.salary
       }
     });
   } catch (error) {
@@ -137,32 +138,21 @@ export const getEmployeeSalary = async (req, res) => {
   }
 };
 
-// Update employee salary
+// Update employee salary with automatic deductions calculation
 export const updateEmployeeSalary = async (req, res) => {
   try {
     const { id } = req.params;
-    const { salary } = req.body;
+    const { basicSalary, allowances } = req.body;
 
     // Validate salary
-    if (salary === undefined || salary === null) {
+    if (!basicSalary || basicSalary < 0) {
       return res.status(400).json({
         success: false,
-        error: 'Please provide salary amount'
+        error: 'Please provide valid basic salary'
       });
     }
 
-    if (salary < 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'Salary cannot be negative'
-      });
-    }
-
-    const employee = await Employee.findByIdAndUpdate(
-      id,
-      { salary, updatedAt: Date.now() },
-      { new: true, runValidators: true }
-    );
+    const employee = await Employee.findById(id);
 
     if (!employee) {
       return res.status(404).json({
@@ -171,17 +161,23 @@ export const updateEmployeeSalary = async (req, res) => {
       });
     }
 
+    // Calculate complete salary with KRA deductions
+    const salaryBreakdown = calculateCompleteSalary({
+      basicSalary: parseFloat(basicSalary),
+      allowances: allowances || {}
+    });
+
+    // Update employee salary
+    employee.salary = salaryBreakdown;
+    employee.updatedAt = Date.now();
+    
+    await employee.save();
+
     res.json({
       success: true,
-      message: 'Salary updated successfully',
-      employee: {
-        _id: employee._id,
-        employeeId: employee.employeeId,
-        name: employee.name,
-        designation: employee.designation,
-        department: employee.department,
-        salary: employee.salary
-      }
+      message: 'Salary updated successfully with automatic deductions',
+      salary: employee.salary,
+      breakdown: salaryBreakdown
     });
   } catch (error) {
     console.error('Error updating salary:', error);
@@ -202,17 +198,54 @@ export const addEmployee = async (req, res) => {
       dob,
       gender,
       maritalStatus,
+      phone,
+      nationalId,
+      emergencyContactName,
+      emergencyContactRelationship,
+      emergencyContactPhone,
+      emergencyContactEmail,
       designation,
       department,
-      salary,
-      password
+      basicSalary,
+      housingAllowance,
+      transportAllowance,
+      medicalAllowance,
+      otherAllowance,
+      kraPIN,
+      nssfNumber,
+      nhifNumber,
+      password,
+      role
     } = req.body;
 
     // Validate required fields
-    if (!name || !email || !employeeId || !department || !designation) {
+    if (!name || !email || !employeeId || !phone || !nationalId || !department || !designation) {
       return res.status(400).json({
         success: false,
-        error: 'Please provide all required fields (name, email, employeeId, department, designation)'
+        error: 'Please provide all required fields'
+      });
+    }
+
+    // Validate National ID
+    if (!validateNationalId(nationalId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid National ID format. Should be 8 digits.'
+      });
+    }
+
+    // Validate phone numbers
+    if (!validatePhoneNumber(phone)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid phone number format'
+      });
+    }
+
+    if (emergencyContactPhone && !validatePhoneNumber(emergencyContactPhone)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid emergency contact phone number format'
       });
     }
 
@@ -234,6 +267,15 @@ export const addEmployee = async (req, res) => {
       });
     }
 
+    // Check if National ID already exists
+    const existingNationalId = await Employee.findOne({ nationalId });
+    if (existingNationalId) {
+      return res.status(400).json({
+        success: false,
+        error: 'National ID already registered'
+      });
+    }
+
     // Check if user exists
     const existingUser = await User.findOne({ email });
     let userId;
@@ -247,12 +289,33 @@ export const addEmployee = async (req, res) => {
         name,
         email,
         password: hashedPassword,
-        role: 'employee'
+        role: role || 'employee'
       });
       await newUser.save();
       userId = newUser._id;
     }
-    let departmentName = await  Department.findOne({_id:department}) 
+
+    // Get department name
+    let departmentData = await Department.findOne({ _id: department });
+    
+    if (!departmentData) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid department selected'
+      });
+    }
+
+    // Calculate salary with KRA deductions
+    const salaryData = calculateCompleteSalary({
+      basicSalary: parseFloat(basicSalary) || 0,
+      allowances: {
+        housing: parseFloat(housingAllowance) || 0,
+        transport: parseFloat(transportAllowance) || 0,
+        medical: parseFloat(medicalAllowance) || 0,
+        other: parseFloat(otherAllowance) || 0
+      }
+    });
+
     const newEmployee = new Employee({
       name,
       email,
@@ -260,9 +323,20 @@ export const addEmployee = async (req, res) => {
       dob: dob || undefined,
       gender: gender || undefined,
       maritalStatus: maritalStatus || undefined,
+      phone: formatPhoneNumber(phone),
+      nationalId,
+      emergencyContact: {
+        name: emergencyContactName || '',
+        relationship: emergencyContactRelationship || '',
+        phone: emergencyContactPhone ? formatPhoneNumber(emergencyContactPhone) : '',
+        email: emergencyContactEmail || ''
+      },
       designation,
-      department : departmentName.dep_name,
-      salary: salary || 0,
+      department: departmentData.dep_name,
+      salary: salaryData,
+      kraPIN,
+      nssfNumber,
+      nhifNumber,
       profileImage: req.file ? req.file.filename : undefined,
       user: userId
     });
@@ -271,8 +345,9 @@ export const addEmployee = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: 'Employee added successfully',
-      employee: newEmployee
+      message: 'Employee added successfully with automatic salary calculations',
+      employee: newEmployee,
+      salaryBreakdown: salaryData
     });
   } catch (error) {
     console.error('Error adding employee:', error);
@@ -288,6 +363,27 @@ export const updateEmployee = async (req, res) => {
   try {
     const { id } = req.params;
     const updateData = { ...req.body };
+
+    // Validate phone numbers if provided
+    if (updateData.phone && !validatePhoneNumber(updateData.phone)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid phone number format'
+      });
+    }
+
+    // Validate National ID if provided
+    if (updateData.nationalId && !validateNationalId(updateData.nationalId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid National ID format'
+      });
+    }
+
+    // Format phone number
+    if (updateData.phone) {
+      updateData.phone = formatPhoneNumber(updateData.phone);
+    }
 
     // Add profile image if uploaded
     if (req.file) {

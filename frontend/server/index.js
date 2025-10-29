@@ -3,6 +3,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
+import fs from 'fs';
 import connectToDatabase from './db/db.js';
 
 // Import routes
@@ -43,8 +44,27 @@ app.use(cors({
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Static files
+// ============================================
+// STATIC FILES & UPLOADS DIRECTORY
+// ============================================
+// Ensure uploads directory exists
+const uploadsDir = path.join(__dirname, 'public/uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+  console.log('✅ Created uploads directory:', uploadsDir);
+}
+
+// Serve static files
 app.use('/public', express.static(path.join(__dirname, 'public')));
+app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
+
+// Log static file attempts (helpful for debugging)
+app.use((req, res, next) => {
+  if (req.url.startsWith('/public') || req.url.startsWith('/uploads')) {
+    console.log(`📁 Static file request: ${req.method} ${req.url}`);
+  }
+  next();
+});
 
 // API Routes (AFTER app is created)
 app.use('/api/auth', authRouter);
@@ -78,7 +98,8 @@ app.get('/api/health', (req, res) => {
   res.json({ 
     success: true,
     status: 'healthy',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    uploadsPath: uploadsDir
   });
 });
 
@@ -110,48 +131,16 @@ app.use((req, res) => {
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-  console.log('=================================');
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`API: http://localhost:${PORT}`);
-  console.log(`Static files: http://localhost:${PORT}/public`);
-  console.log('=================================');
-  console.log('Available routes:');
-  console.log(`  Auth: http://localhost:${PORT}/api/auth`);
-  console.log(`  Departments: http://localhost:${PORT}/api/departments`);
-  console.log(`  Employees: http://localhost:${PORT}/api/employees`);
-  console.log(`  Salary: http://localhost:${PORT}/api/salary`);
-  console.log(`    ├─ Get all salaries: GET /api/salary`);
-  console.log(`    ├─ Add salary: POST /api/salary/add`);
-  console.log(`    ├─ Salary history: GET /api/salary/history/:employeeId`);
-  console.log(`    ├─ Salary summary: GET /api/salary/summary/:employeeId`);
-  console.log(`    └─ Department stats: GET /api/salary/department/:departmentId/stats`);
-  console.log(`  Leaves: http://localhost:${PORT}/api/leaves`);
-  console.log(`  Reports: http://localhost:${PORT}/api/reports`);
-  console.log(`    ├─ All leave reports: GET /api/reports/leaves`);
-  console.log(`    │   ├─ Filter by status: ?status=Approved`);
-  console.log(`    │   ├─ Filter by department: ?department=DEPT_ID`);
-  console.log(`    │   ├─ Filter by date range: ?startDate=2025-01-01&endDate=2025-01-31`);
-  console.log(`    │   └─ Filter by leave type: ?leaveType=Sick Leave`);
-  console.log(`    ├─ Leave statistics: GET /api/reports/leaves/statistics`);
-  console.log(`    │   └─ Filter: ?year=2025&month=10&departmentId=DEPT_ID`);
-  console.log(`    ├─ Department summary: GET /api/reports/leaves/department-summary`);
-  console.log(`    └─ Employee report: GET /api/reports/leaves/employee/:employeeId`);
-  console.log(`  Payroll: http://localhost:${PORT}/api/payroll`);
-  console.log('=================================');
+
 });
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err) => {
-  console.error('UNHANDLED REJECTION! Shutting down...');
-  console.error(err.name, err.message);
   process.exit(1);
 });
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (err) => {
-  console.error('UNCAUGHT EXCEPTION! Shutting down...');
-  console.error(err.name, err.message);
   process.exit(1);
 });
 

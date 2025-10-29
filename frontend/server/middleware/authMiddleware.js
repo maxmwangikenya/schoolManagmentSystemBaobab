@@ -19,6 +19,7 @@ export const verifyUser = async (req, res, next) => {
         const token = authHeader.split(' ')[1];
         
         if (!token) {
+
             return res.status(401).json({
                 success: false,
                 error: 'Invalid token format'
@@ -26,11 +27,16 @@ export const verifyUser = async (req, res, next) => {
         }
 
         // Verify token
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_key');
-        
 
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_key');
+        console.log('SUCCESS: Token verified:', {
+            userId: decoded._id || decoded.id,
+            role: decoded.role,
+            email: decoded.email
+        });
         
         // Try to find user in User model first (Admin)
+
         let user = await User.findById(decoded._id || decoded.id).select('-password');
         
         // If not found in User, try Employee model
@@ -39,11 +45,18 @@ export const verifyUser = async (req, res, next) => {
         } 
         
         if (!user) {
+            console.log('ERROR: User not found in any model');
             return res.status(401).json({
                 success: false,
                 error: 'User not found'
             });
         }
+
+        console.log('SUCCESS: User found:', {
+            id: user._id,
+            name: user.name || `${user.firstName} ${user.lastName}`,
+            role: user.role
+        });
 
         // Attach user to request with consistent property names
         req.user = {
@@ -61,7 +74,7 @@ export const verifyUser = async (req, res, next) => {
         next();
         
     } catch (error) {
-       
+        console.error('ERROR: TOKEN VERIFICATION FAILED:', error.message);
         
         if (error.name === 'JsonWebTokenError') {
             return res.status(401).json({
@@ -86,6 +99,7 @@ export const verifyUser = async (req, res, next) => {
 
 // Admin role check middleware
 export const adminMiddleware = (req, res, next) => {
+    console.log(' ADMIN ACCESS CHECK ');
     console.log('Admin middleware check:', {
         userId: req.user?._id || req.user?.id,
         userRole: req.user?.role,
@@ -93,6 +107,7 @@ export const adminMiddleware = (req, res, next) => {
     });
 
     if (!req.user) {
+        console.log('ERROR: No user in request');
         return res.status(401).json({
             success: false,
             error: 'Authentication required'
@@ -100,13 +115,14 @@ export const adminMiddleware = (req, res, next) => {
     }
 
     if (req.user.role?.toLowerCase() !== 'admin') {
+
         return res.status(403).json({
             success: false,
             error: 'Unauthorized: Admin access required'
         });
     }
 
-   
+
     next();
 };
 

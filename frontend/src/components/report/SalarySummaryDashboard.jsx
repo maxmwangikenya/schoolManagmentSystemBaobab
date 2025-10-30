@@ -1,13 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
-import {
-  DollarSign,
-  BarChart3,
-  PieChart as PieIcon,
-  RefreshCcw
-} from 'lucide-react';
-
-// Recharts
+import { DollarSign, BarChart3, PieChart as PieIcon, RefreshCcw } from 'lucide-react';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -37,15 +30,14 @@ const SalarySummaryDashboard = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
 
-  // Raw data
-  const [salaries, setSalaries] = useState([]);       // from GET /api/salary
-  const [departments, setDepartments] = useState([]); // from GET /api/departments
+  // Raw arrays
+  const [salaries, setSalaries] = useState([]);       // from GET /api/employees/salaries
+  const [departments, setDepartments] = useState([]); // optional: from GET /api/departments
 
   const authHeaders = useMemo(
     () => ({ Authorization: `Bearer ${localStorage.getItem('token')}` }),
     []
   );
-
 
   const fetchAll = async () => {
     try {
@@ -53,23 +45,15 @@ const SalarySummaryDashboard = () => {
       setError(null);
 
       const [salRes, depRes] = await Promise.all([
-        axios.get(`${API_BASE_URL}/api/salary`, { headers: authHeaders }),
-        axios.get(`${API_BASE_URL}/api/departments`, { headers: authHeaders }),
+        axios.get(`${API_BASE_URL}/api/employees/salaries`, { headers: authHeaders }),
+        axios.get(`${API_BASE_URL}/api/departments`, { headers: authHeaders }).catch(() => ({ data: { departments: [] } })),
       ]);
 
-      if (!salRes.data?.success || !Array.isArray(salRes.data?.salaries ?? salRes.data)) {
-        throw new Error('Invalid salary response format');
-      }
-
-      // Your /api/salary controller might return { success, salaries } or a bare array.
-      const salaryRows = salRes.data?.salaries ?? salRes.data;
-
-      if (!depRes.data?.success || !Array.isArray(depRes.data?.departments)) {
-        throw new Error('Invalid departments response format');
-      }
+      const salaryRows = Array.isArray(salRes?.data?.salaries) ? salRes.data.salaries : [];
+      const departmentRows = Array.isArray(depRes?.data?.departments) ? depRes.data.departments : [];
 
       setSalaries(salaryRows);
-      setDepartments(depRes.data.departments);
+      setDepartments(departmentRows);
     } catch (err) {
       console.error(err);
       setError(err.response?.data?.error || err.message || 'Failed to load salary summary');
@@ -93,36 +77,25 @@ const SalarySummaryDashboard = () => {
   // Derivations / Aggregations
   // ==========================
 
-  // Normalize rows to a consistent shape:
-  // Expecting each row to have at least: amount/net/gross, departmentId/department, paidAt/date
+  // Backend already returns flat rows with: gross, net, deductions, department, paidAt
   const normalized = useMemo(() => {
     return salaries.map((s) => {
-      const gross = Number(s?.gross ?? s?.salary?.gross ?? s?.amount ?? 0) || 0;
-      const net = Number(s?.net ?? s?.salary?.net ?? 0) || gross;
-      const deductions = Number(s?.deductions ?? s?.salary?.deductionsTotal ?? 0) || Math.max(gross - net, 0);
-      const departmentId = s?.departmentId || s?.department?._id || s?.departmentIdRef || null;
-      const departmentName =
-        s?.department?.dep_name ||
-        departments.find((d) => String(d._id) === String(departmentId))?.dep_name ||
-        s?.department ||
-        'Unassigned';
-      const paidAt =
-        s?.paidAt ||
-        s?.date ||
-        s?.createdAt ||
-        new Date().toISOString();
+      const gross = Number(s.gross || 0);
+      const net = Number(s.net || 0);
+      const deductions = Number(s.deductions || Math.max(gross - net, 0));
+      const departmentName = s.department || 'Unassigned';
+      const paidAt = s.paidAt || s.createdAt || new Date().toISOString();
 
       return {
         ...s,
         _gross: gross,
         _net: net,
         _deductions: deductions,
-        _departmentId: departmentId,
         _departmentName: departmentName,
         _paidMonthKey: new Date(paidAt).toISOString().slice(0, 7), // YYYY-MM
       };
     });
-  }, [salaries, departments]);
+  }, [salaries]);
 
   const kpis = useMemo(() => {
     const totalGross = normalized.reduce((acc, r) => acc + r._gross, 0);
@@ -130,11 +103,10 @@ const SalarySummaryDashboard = () => {
     const totalDeductions = normalized.reduce((acc, r) => acc + r._deductions, 0);
     const count = normalized.length;
     const avgNet = count ? totalNet / count : 0;
-
     return { totalGross, totalNet, totalDeductions, count, avgNet };
   }, [normalized]);
 
-  // Monthly trend: group by YYYY-MM
+  // Monthly trend
   const monthlyTrend = useMemo(() => {
     const map = new Map();
     normalized.forEach((r) => {
@@ -145,11 +117,10 @@ const SalarySummaryDashboard = () => {
       row.net += r._net;
       row.deductions += r._deductions;
     });
-    // sort ascending by month
     return Array.from(map.values()).sort((a, b) => (a.month > b.month ? 1 : -1));
   }, [normalized]);
 
-  // Per-department totals (net)
+  // Net per department
   const deptBars = useMemo(() => {
     const map = new Map();
     normalized.forEach((r) => {
@@ -162,8 +133,7 @@ const SalarySummaryDashboard = () => {
     return Array.from(map.values()).sort((a, b) => b.net - a.net);
   }, [normalized]);
 
-  // Deductions pie (by type if available or just a single “Deductions” slice)
-  // If your salary rows include a breakdown (e.g., KRA/NHIF/NSSF), you can expand this.
+  // Pie: Net vs Deductions
   const deductionsPie = useMemo(() => {
     const total = normalized.reduce((acc, r) => acc + r._deductions, 0);
     return total > 0
@@ -287,13 +257,7 @@ const SalarySummaryDashboard = () => {
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie
-                  data={deductionsPie}
-                  dataKey="value"
-                  nameKey="name"
-                  outerRadius={100}
-                  label
-                >
+                <Pie data={deductionsPie} dataKey="value" nameKey="name" outerRadius={100} label>
                   {deductionsPie.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}

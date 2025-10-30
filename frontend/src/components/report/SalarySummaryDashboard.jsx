@@ -46,6 +46,7 @@ const SalarySummaryDashboard = () => {
     []
   );
 
+
   const fetchAll = async () => {
     try {
       setLoading(true);

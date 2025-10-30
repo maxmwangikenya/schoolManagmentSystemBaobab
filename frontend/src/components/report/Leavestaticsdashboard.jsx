@@ -33,7 +33,6 @@ const LeaveStatisticsDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
  
-
     year: new Date().getFullYear(),
     month: new Date().getMonth() + 1,
     departmentId: ''

@@ -18,6 +18,8 @@ import {
 } from 'lucide-react';
 
 const LeaveReportList = () => {
+  const API_BASE_URL = import.meta.env.VITE_BACKENDAPI;
+
   const [leaves, setLeaves] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -35,7 +37,7 @@ const LeaveReportList = () => {
 
   // Statistics
   const [stats, setStats] = useState(null);
-  const API_BASE_URL = import.meta.env.VITE_BACKENDAPI;
+
 
   // Fetch departments
   useEffect(() => {
@@ -49,7 +51,7 @@ const LeaveReportList = () => {
 
   const fetchDepartments = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/api/department`,
+      const res = await axios.get(`${API_BASE_URL}/api/departments`,
         {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -84,7 +86,7 @@ const LeaveReportList = () => {
         }
       );
 
-      let fetchedLeaves = response.data.data || [];
+      let fetchedLeaves = res.data.data || [];
 
       // Client-side search filter
       if (filters.searchTerm) {

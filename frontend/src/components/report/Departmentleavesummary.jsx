@@ -47,7 +47,7 @@ const DepartmentLeaveSummary = () => {
           }
         }
       );
-      setSummary(response.data.data || []);
+      setSummary(res.data.data || []);
     } catch (error) {
       console.error('Error fetching department summary:', error);
       setError('Failed to fetch department summary');

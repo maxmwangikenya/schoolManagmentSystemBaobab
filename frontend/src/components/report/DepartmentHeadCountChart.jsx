@@ -44,7 +44,7 @@ const DepartmentHeadcountChart = () => {
       }
       setRows(res.data.data);
     } catch (err) {
-      setError(err.response?.data?.error || err.message || 'Failed to load department stats');
+      setError(err.res?.data?.error || err.message || 'Failed to load department stats');
     } finally {
       setLoading(false);
       setRefreshing(false);

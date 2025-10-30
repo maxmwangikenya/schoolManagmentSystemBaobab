@@ -35,6 +35,7 @@ const LeaveReportList = () => {
 
   // Statistics
   const [stats, setStats] = useState(null);
+  const API_BASE_URL = import.meta.env.VITE_BACKENDAPI;
 
   // Fetch departments
   useEffect(() => {
@@ -48,12 +49,14 @@ const LeaveReportList = () => {
 
   const fetchDepartments = async () => {
     try {
-      const response = await axios.get('http://localhost:3000/api/departments', {
+      const res = await axios.get(`${API_BASE_URL}/api/department`,
+        {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      setDepartments(response.data.departments || []);
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      }
+    );
+      setDepartments(res.data.departments || []);
     } catch (error) {
       console.error('Error fetching departments:', error);
     }
@@ -72,8 +75,8 @@ const LeaveReportList = () => {
       if (filters.startDate) params.append('startDate', filters.startDate);
       if (filters.endDate) params.append('endDate', filters.endDate);
 
-      const response = await axios.get(
-        `http://localhost:3000/api/reports/leaves?${params.toString()}`,
+      const res = await axios.get(`${API_BASE_URL}/api/reports/leaves?${params.toString()}`,
+
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`
@@ -107,15 +110,15 @@ const LeaveReportList = () => {
 
   const fetchStatistics = async () => {
     try {
-      const response = await axios.get(
-        'http://localhost:3000/api/reports/leaves/statistics',
+      const res = await axios.get(`${API_BASE_URL}/api/reports/leaves/statistics`,
+
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`
           }
         }
       );
-      setStats(response.data.data);
+      setStats(res.data.data);
     } catch (error) {
       console.error('Error fetching statistics:', error);
     }

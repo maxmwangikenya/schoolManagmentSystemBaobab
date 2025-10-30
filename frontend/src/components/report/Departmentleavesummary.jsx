@@ -26,9 +26,11 @@ import {
 } from 'recharts';
 
 const DepartmentLeaveSummary = () => {
+  
   const [summary, setSummary] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+   const API_BASE_URL = import.meta.env.VITE_BACKENDAPI;
 
   useEffect(() => {
     fetchDepartmentSummary();
@@ -38,8 +40,7 @@ const DepartmentLeaveSummary = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await axios.get(
-        'http://localhost:3000/api/reports/leaves/department-summary',
+          const res = await axios.get(`${API_BASE_URL}/api/reports/leaves/department-summary`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`

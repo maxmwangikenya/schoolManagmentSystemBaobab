@@ -26,10 +26,14 @@ import {
 } from 'recharts';
 
 const LeaveStatisticsDashboard = () => {
+   const API_BASE_URL = import.meta.env.VITE_BACKENDAPI;
+   
   const [statistics, setStatistics] = useState(null);
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
+ 
+
     year: new Date().getFullYear(),
     month: new Date().getMonth() + 1,
     departmentId: ''
@@ -43,42 +47,51 @@ const LeaveStatisticsDashboard = () => {
     fetchStatistics();
   }, [filters]);
 
+
+
   const fetchDepartments = async () => {
     try {
-      const response = await axios.get('http://localhost:3000/api/departments', {
+      const res = await axios.get(`${API_BASE_URL}/api/departments`,
+         {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`
         }
       });
-      setDepartments(response.data.departments || []);
+      setDepartments(res.data.departments || []);
     } catch (error) {
       console.error('Error fetching departments:', error);
     }
   };
 
-  const fetchStatistics = async () => {
-    try {
-      setLoading(true);
-      const params = new URLSearchParams();
-      if (filters.year) params.append('year', filters.year);
-      if (filters.month) params.append('month', filters.month);
-      if (filters.departmentId) params.append('departmentId', filters.departmentId);
+const fetchStatistics = async () => {
+  try {
+    setLoading(true);
 
-      const response = await axios.get(
-        `http://localhost:3000/api/reports/leaves/statistics?${params.toString()}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`
-          }
-        }
-      );
-      setStatistics(response.data.data);
-    } catch (error) {
-      console.error('Error fetching statistics:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    // Build query params dynamically
+    const params = new URLSearchParams();
+    if (filters.year) params.append('year', filters.year);
+    if (filters.month) params.append('month', filters.month);
+    if (filters.departmentId) params.append('departmentId', filters.departmentId);
+
+    // ✅ Correct axios syntax
+    const res = await axios.get(
+      `${API_BASE_URL}/api/reports/leaves/statistics?${params.toString()}`,
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      }
+    );
+
+    // ✅ Use res (not response)
+    setStatistics(res.data.data);
+  } catch (error) {
+    console.error('Error fetching statistics:', error);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const COLORS = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#06b6d4'];
 

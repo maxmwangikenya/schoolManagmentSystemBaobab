@@ -33,6 +33,8 @@ const EmployeeLeaveReport = ({ employeeId }) => {
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const API_BASE_URL = import.meta.env.VITE_BACKENDAPI;
+
 
   useEffect(() => {
     if (employeeId) {
@@ -44,8 +46,7 @@ const EmployeeLeaveReport = ({ employeeId }) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await axios.get(
-        `http://localhost:3000/api/reports/leaves/employee/${employeeId}`,
+      const res = await axios.get(`${API_BASE_URL}/api/reports/leaves/employee/${employeeId}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`

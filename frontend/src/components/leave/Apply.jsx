@@ -16,7 +16,7 @@ const AdminLeaveManagement = () => {
   const [reviewComments, setReviewComments] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const API_BASE_URL = 'YOUR_API_URL_HERE'; // Replace with your actual API URL
+  const API_BASE_URL = import.meta.env.VITE_BACKENDAPI; // Replace with your actual API URL
 
   useEffect(() => {
     fetchLeaveStats();

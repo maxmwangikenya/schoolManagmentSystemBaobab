@@ -1,75 +1,121 @@
+// routes/auth.js
 import { Router } from 'express';
-import { login, register, logout, checkEmail, verifyToken } from '../controllers/authController.js';
-import { verifyUser, adminMiddleware } from '../middleware/authMiddleware.js';
+import {
+  login,
+  register,
+  logout,
+  checkEmail,
+  verifyToken
+} from '../controllers/authController.js';
+
+import {
+  verifyUser,
+  adminMiddleware
+} from '../middleware/authMiddleware.js';
+
 import passwordController from '../controllers/passwordController.js';
 
 const router = Router();
 
+// Simple health/test endpoint for the auth router
 router.get('/test', (req, res) => {
-    console.log('Auth routes test endpoint hit');
-    res.json({ success: true, message: 'Auth routes are working' });
+  console.log('Auth routes test endpoint hit');
+  res.json({ success: true, message: 'Auth routes are working' });
 });
 
-// Authentication
-router.post('/login', (req, res, next) => {
-    console.log(' Login attempt:', {
-        email: req.body?.email,
-        hasPassword: !!req.body?.password,
-        body: Object.keys(req.body || {})
+// ------------- Auth endpoints -------------
+
+// Login
+router.post(
+  '/login',
+  (req, res, next) => {
+    console.log('Login attempt:', {
+      email: req.body?.email,
+      hasPassword: !!req.body?.password,
+      body: Object.keys(req.body || {})
     });
     next();
-}, login);
+  },
+  login
+);
 
-router.post('/register', (req, res, next) => {
+// Register
+router.post(
+  '/register',
+  (req, res, next) => {
     console.log('Registration attempt:', {
-        email: req.body?.email,
-        body: Object.keys(req.body || {})
+      email: req.body?.email,
+      body: Object.keys(req.body || {})
     });
     next();
-}, register);
+  },
+  register
+);
 
+// Check if email exists
 router.post('/check-email', checkEmail);
 
-// Password validation (public utility)
-router.post('/validate-strength', passwordController.validatePasswordStrength);
-
-// Password policy information (public)
-router.get('/password-policy', passwordController.getPasswordPolicy);
-
-// Token verification
-router.get('/verify', (req, res, next) => {
-    console.log('🔍 Token verification attempt:', {
-        hasAuthHeader: !!req.headers.authorization,
-        authHeader: req.headers.authorization ? 'Present' : 'Missing'
+// Verify token (requires auth middleware to populate req.user)
+router.get(
+  '/verify',
+  (req, res, next) => {
+    console.log('Token verification attempt:', {
+      hasAuthHeader: !!req.headers.authorization,
+      authHeader: req.headers.authorization ? 'Present' : 'Missing'
     });
     next();
-}, verifyUser, verifyToken);
+  },
+  verifyUser,
+  verifyToken
+);
 
 // Logout
 router.post('/logout', verifyUser, logout);
 
-// User's own password management
+// ------------- Password utilities (public) -------------
+
+// Validate password strength (public helper)
+router.post('/validate-strength', passwordController.validatePasswordStrength);
+
+// Get current password policy (public)
+router.get('/password-policy', passwordController.getPasswordPolicy);
+
+// ------------- Password management (user) -------------
+
+// Change current user's password
 router.put('/change-password', verifyUser, passwordController.changePassword);
 
-// User's password information
+// Get current user's password history
 router.get('/password-history', verifyUser, passwordController.getPasswordHistory);
+
+// Check if current user's password is expired/expiring
 router.get('/check-password-expiry', verifyUser, passwordController.checkPasswordExpiry);
 
-// ============= ADMIN ROUTES (Admin authentication required) =============
+// ------------- Admin-only password actions -------------
 
-// ✅ NEW: Admin changes any employee's password
-router.put('/admin-change-password/:employeeId', 
-    verifyUser, 
-    adminMiddleware, 
-    passwordController.adminChangeEmployeePassword
+// Admin: change a specific employee's password
+router.put(
+  '/admin-change-password/:employeeId',
+  verifyUser,
+  adminMiddleware,
+  passwordController.adminChangeEmployeePassword
 );
 
-// Employee password management (existing routes)
-router.put('/reset-employee-password', verifyUser, adminMiddleware, passwordController.resetEmployeePassword);
-router.post('/bulk-password-reset', verifyUser, adminMiddleware, passwordController.bulkPasswordReset);
+// Admin: reset a single employee's password (legacy route)
+router.put(
+  '/reset-employee-password',
+  verifyUser,
+  adminMiddleware,
+  passwordController.resetEmployeePassword
+);
 
-// Password policy management
-router.put('/password-policy', verifyUser, adminMiddleware, passwordController.updatePasswordPolicy);
+// Admin: bulk reset
+router.post(
+  '/bulk-password-reset',
+  verifyUser,
+  adminMiddleware,
+  passwordController.bulkPasswordReset
+);
 
 console.log('Auth & Password routes registered');
 

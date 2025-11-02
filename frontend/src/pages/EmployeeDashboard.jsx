@@ -1,429 +1,489 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { useAuth } from '../context/authContext';
+
 import {
   User,
-  CheckCircle,
-  Clock,
   Calendar,
-  TrendingUp,
   Activity,
   Zap,
   DollarSign,
-  FileText,
   Settings,
   ArrowRight,
-  Award,
-  BarChart3,
   Briefcase,
+  Building,
   LogOut,
-  Home,
-  Umbrella
+  ClipboardList,
+  Shield,
 } from 'lucide-react';
+
+const currencyCode = import.meta.env.VITE_CURRENCY || 'KES';
+const fmtMoney = (n) =>
+  new Intl.NumberFormat('en-US', { style: 'currency', currency: currencyCode, maximumFractionDigits: 2 }).format(Number(n || 0));
+const fmtDate = (d) =>
+  d ? new Date(d).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
+
+const DashboardCard = ({ title, value, subtitle, gradient = 'from-slate-50 to-slate-100', border = 'border-slate-200', Icon, onClick }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className={`text-left bg-white rounded-xl shadow-sm border ${border} hover:shadow-lg transition-all hover:-translate-y-1 focus:ring-2 focus:ring-indigo-500/30`}
+  >
+    <div className={`bg-gradient-to-br ${gradient} p-4 rounded-xl`}>
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">{title}</span>
+        {Icon ? <Icon className="w-4.5 h-4.5 text-slate-500" /> : null}
+      </div>
+      <div className="text-xl md:text-2xl font-extrabold text-slate-900">{value}</div>
+      {subtitle ? <div className="text-[11px] text-slate-600 mt-1">{subtitle}</div> : null}
+    </div>
+  </button>
+);
+
+const StatusBadge = ({ status }) => {
+  const map = {
+    pending: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
+    approved: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200',
+    rejected: 'bg-rose-50 text-rose-700 ring-1 ring-rose-200',
+  };
+  const cls = map[status?.toLowerCase?.()] || 'bg-slate-50 text-slate-600 ring-1 ring-slate-200';
+  return <span className={`px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${cls}`}>{status || 'unknown'}</span>;
+};
 
 const EmployeeDashboardHome = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const API_BASE_URL = import.meta.env.VITE_BACKENDAPI;
 
-  // Mock data - replace with real API data
-  const stats = {
-    attendanceRate: 95,
-    leavesAvailable: 12,
-    leavesTaken: 8,
-    upcomingLeaves: 2,
-    lastCheckIn: '9:15 AM',
-    currentSalary: '$5,000'
+  const employeeId = user?.employeeId || user?._id;
+
+  const [loading, setLoading] = useState(true);
+  const [empError, setEmpError] = useState(null);
+  const [employee, setEmployee] = useState(null);
+
+  const [balError, setBalError] = useState(null);
+  const [balance, setBalance] = useState(null);
+
+  const [histError, setHistError] = useState(null);
+  const [leaves, setLeaves] = useState([]);
+
+  const [now, setNow] = useState(new Date()); // live time
+
+  const token = localStorage.getItem('token');
+
+  // live clock
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 30000);
+    return () => clearInterval(t);
+  }, []);
+
+  const fetchAll = async () => {
+    try {
+      setLoading(true);
+      const headers = { Authorization: `Bearer ${token}` };
+
+      const [empRes, balRes, histRes] = await Promise.all([
+        axios.get(`${API_BASE_URL}/api/employees/${employeeId}`, { headers }),
+        axios.get(`${API_BASE_URL}/api/leaves/balance/${employeeId}`, { headers }),
+        axios.get(`${API_BASE_URL}/api/leaves/employee/${employeeId}`, { headers }),
+      ]);
+
+      setEmployee(empRes.data || null);
+      setEmpError(null);
+
+      setBalance(balRes.data?.data || null);
+      setBalError(null);
+
+      setLeaves(histRes.data?.leaves || []);
+      setHistError(null);
+    } catch (err) {
+      if (err?.config?.url?.includes('/api/employees/')) setEmpError(err?.response?.data?.error || 'Failed to load employee');
+      if (err?.config?.url?.includes('/api/leaves/balance')) setBalError(err?.response?.data?.error || 'Failed to load leave balance');
+      if (err?.config?.url?.includes('/api/leaves/employee')) setHistError(err?.response?.data?.error || 'Failed to load leave history');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Handle logout with confirmation
+  useEffect(() => {
+    if (employeeId && API_BASE_URL && token) fetchAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [employeeId]);
+
+  const upcomingLeavesCount = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return (leaves || []).filter((l) => new Date(l.startDate) >= today).length;
+  }, [leaves]);
+
+  const totalRemaining = useMemo(() => {
+    const rem = balance?.remainingLeaves || {};
+    return Number(rem.casual || 0) + Number(rem.sick || 0) + Number(rem.annual || 0);
+  }, [balance]);
+
+  const totalUsed = useMemo(() => {
+    const used = balance?.usedLeaves || {};
+    return Number(used.casual || 0) + Number(used.sick || 0) + Number(used.annual || 0);
+  }, [balance]);
+
+  const net = employee?.salary?.netSalary;
+  const gross = employee?.salary?.grossSalary;
+
+  // greeting + icon rules
+  const hour = now.getHours();
+  const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const getGreeting = (h) => {
+    if (h < 5) return 'Good Night';
+    if (h < 12) return 'Good Morning';
+    if (h < 17) return 'Good Afternoon';
+    return 'Good Evening';
+  };
+  const greeting = getGreeting(hour);
+  const isSun = hour >= 6 && hour < 19;
+
+  const Glyph = () =>
+    isSun ? (
+      <span className="relative inline-flex items-center justify-center">
+        <span className="absolute -inset-2 rounded-full bg-yellow-400/30 blur-md animate-pulse" />
+        <span className="absolute -inset-4 rounded-full bg-amber-400/20 blur-xl animate-pulse" />
+        <span className="text-3xl md:text-4xl select-none">☀️</span>
+      </span>
+    ) : (
+      <span className="relative inline-flex items-center justify-center">
+        <span className="absolute -inset-2 rounded-full bg-indigo-400/30 blur-md animate-pulse" />
+        <span className="absolute -inset-4 rounded-full bg-indigo-500/20 blur-xl animate-pulse" />
+        <span className="text-3xl md:text-4xl select-none">🌙</span>
+      </span>
+    );
+
+  const avatarSrc = employee?.profileImage
+    ? `${API_BASE_URL}/public/uploads/${employee.profileImage}`
+    : `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'Employee')}&background=0ea5e9&color=fff&size=200`;
+
+  const role = (user?.role || 'employee').toLowerCase();
+  const roleChip =
+    role === 'admin'
+      ? 'bg-rose-50 text-rose-700 border-rose-200'
+      : 'bg-emerald-50 text-emerald-700 border-emerald-200';
+
   const handleLogout = () => {
-    if (window.confirm('Are you sure you want to logout?')) {
-      logout();
-    }
+    if (window.confirm('Logout now?')) logout();
   };
 
-  // Quick actions with navigation
-  const quickActions = [
-    { 
-      icon: Home, 
-      label: 'Dashboard', 
-      color: 'from-blue-500 to-cyan-600', 
-      action: () => navigate('/employee-dashboard'),
-      bgColor: 'from-blue-50 to-cyan-50',
-      borderColor: 'border-blue-200'
-    },
-    { 
-      icon: User, 
-      label: 'My Profile', 
-      color: 'from-purple-500 to-pink-600', 
-      action: () => navigate(`/employee-dashboard/profile/${user?.employeeId || user?._id}`),
-      bgColor: 'from-purple-50 to-pink-50',
-      borderColor: 'border-purple-200'
-    },
-    { 
-      icon: Umbrella, 
-      label: 'Leaves', 
-      color: 'from-orange-500 to-red-600', 
-      action: () => navigate(`/employee-dashboard/leave/${user?.employeeId || user?._id}`),
-      bgColor: 'from-orange-50 to-red-50',
-      borderColor: 'border-orange-200'
-    },
-    { 
-      icon: DollarSign, 
-      label: 'Salary', 
-      color: 'from-green-500 to-emerald-600', 
-      action: () => navigate(`/employee-dashboard/salary/${user?.employeeId || user?._id}`),
-      bgColor: 'from-green-50 to-emerald-50',
-      borderColor: 'border-green-200'
-    },
-    { 
-      icon: Settings, 
-      label: 'Settings', 
-      color: 'from-gray-500 to-slate-600', 
-      action: () => navigate('/employee-dashboard/settings'),
-      bgColor: 'from-gray-50 to-slate-50',
-      borderColor: 'border-gray-200'
-    },
-    { 
-      icon: LogOut, 
-      label: 'Logout', 
-      color: 'from-red-500 to-rose-600', 
-      action: handleLogout,
-      bgColor: 'from-red-50 to-rose-50',
-      borderColor: 'border-red-200'
-    }
-  ];
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[80vh] bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-indigo-600 mx-auto" />
+          <p className="mt-4 text-gray-600 font-medium">Loading your dashboard…</p>
+        </div>
+      </div>
+    );
+  }
 
-  const recentActivities = [
-    { 
-      id: 1, 
-      icon: CheckCircle, 
-      message: 'Successfully checked in', 
-      subtext: 'Time: 9:15 AM • Status: On Time',
-      time: 'Today', 
-      color: 'text-green-600', 
-      bg: 'bg-green-100',
-      borderColor: 'border-green-200',
-      gradientFrom: 'from-green-50',
-      gradientTo: 'to-emerald-50'
-    },
-    { 
-      id: 2, 
-      icon: Calendar, 
-      message: 'Leave request approved', 
-      subtext: 'Type: Annual Leave • Duration: 3 days',
-      time: 'Yesterday', 
-      color: 'text-blue-600', 
-      bg: 'bg-blue-100',
-      borderColor: 'border-blue-200',
-      gradientFrom: 'from-blue-50',
-      gradientTo: 'to-indigo-50'
-    },
-    { 
-      id: 3, 
-      icon: DollarSign, 
-      message: 'Salary credited', 
-      subtext: 'Amount: $5,000 • Month: October',
-      time: '3 days ago', 
-      color: 'text-green-600', 
-      bg: 'bg-green-100',
-      borderColor: 'border-green-200',
-      gradientFrom: 'from-green-50',
-      gradientTo: 'to-emerald-50'
-    },
-    { 
-      id: 4, 
-      icon: Award, 
-      message: 'Performance review scheduled', 
-      subtext: 'Date: Next Monday • Manager: John Smith',
-      time: '1 week ago', 
-      color: 'text-purple-600', 
-      bg: 'bg-purple-100',
-      borderColor: 'border-purple-200',
-      gradientFrom: 'from-purple-50',
-      gradientTo: 'to-pink-50'
-    }
-  ];
-
-  const currentHour = new Date().getHours();
-  const greeting = currentHour < 12 ? 'Good Morning' : currentHour < 18 ? 'Good Afternoon' : 'Good Evening';
-  const greetingEmoji = currentHour < 12 ? '🌅' : currentHour < 18 ? '☀️' : '🌙';
+  if (!employee) {
+    return (
+      <div className="flex items-center justify-center min-h-[80vh]">
+        <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md text-center">
+          <p className="text-red-600 font-semibold mb-3">{empError || 'Unable to load your profile.'}</p>
+          <button
+            onClick={fetchAll}
+            className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-6 md:p-8 space-y-6 md:space-y-8">
-      {/* Hero Welcome Banner */}
-      <div className="relative bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 rounded-3xl shadow-2xl overflow-hidden">
-        <div className="absolute inset-0 bg-black/5"></div>
-        <div className="absolute top-0 right-0 w-72 h-72 md:w-96 md:h-96 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-0 left-0 w-72 h-72 md:w-96 md:h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-        
-        <div className="relative px-6 md:px-8 py-8 md:py-12">
-          <div className="flex flex-col lg:flex-row items-center justify-between gap-6 md:gap-8">
-            {/* Left: Profile & Greeting */}
-            <div className="flex flex-col md:flex-row items-center md:items-start gap-4 md:gap-6 text-center md:text-left">
-              {/* Avatar */}
-              <div className="relative group">
-                <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 via-cyan-500 to-blue-600 rounded-full blur-xl group-hover:blur-2xl transition-all"></div>
-                <img
-                  className="relative h-24 w-24 md:h-32 md:w-32 lg:h-36 lg:w-36 rounded-full object-cover border-4 border-white shadow-2xl transform group-hover:scale-105 transition-transform"
-                  src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'Employee')}&background=0891b2&color=fff&size=200`}
-                  alt={user?.name}
-                />
-                <div className="absolute -bottom-2 -right-2 bg-green-500 w-8 h-8 md:w-10 md:h-10 rounded-full border-4 border-white flex items-center justify-center shadow-lg">
-                  <div className="w-3 h-3 md:w-4 md:h-4 bg-white rounded-full animate-pulse"></div>
-                </div>
-              </div>
+    <div className="bg-gradient-to-br from-slate-50 via-indigo-50/30 to-white min-h-screen">
+      <div className="p-6 md:p-8 space-y-8">
+        {/* ===================== HEADER (two-column) ===================== */}
+        <div className="relative bg-gradient-to-r from-sky-600 via-cyan-600 to-indigo-600 rounded-2xl md:rounded-3xl shadow-2xl overflow-hidden">
+          <div className="absolute inset-0 bg-black/5" />
+          <div className="absolute top-0 right-0 w-80 h-80 bg-white/10 rounded-full blur-3xl" />
 
-              {/* Greeting */}
-              <div>
-                <div className="flex items-center justify-center md:justify-start gap-2 mb-1">
-                  <span className="text-2xl md:text-3xl">{greetingEmoji}</span>
-                  <p className="text-white/90 text-lg md:text-xl font-semibold">{greeting}!</p>
+          <div className="relative px-6 md:px-8 py-7">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* LEFT: identity */}
+              <div className="flex items-start gap-4">
+                <div className="relative">
+                  <img
+                    className="h-16 w-16 md:h-20 md:w-20 rounded-full object-cover border-4 border-white shadow-2xl"
+                    src={avatarSrc}
+                    alt={user?.name || 'Employee'}
+                    onError={(e) => {
+                      e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                        user?.name || 'Employee'
+                      )}&background=0ea5e9&color=fff&size=200`;
+                    }}
+                  />
                 </div>
-                <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-2 md:mb-3 drop-shadow-lg">
-                  {user?.name || 'Employee Dashboard'}
-                </h1>
-                <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 md:gap-3">
-                  <div className="flex items-center gap-2 bg-white/20 backdrop-blur-md px-3 md:px-4 py-1.5 md:py-2 rounded-full border border-white/30">
-                    <Briefcase className="w-3 h-3 md:w-4 md:h-4 text-white" />
-                    <span className="text-white font-semibold text-xs md:text-sm capitalize">{user?.role || 'Employee'}</span>
+
+                <div className="text-white">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-base md:text-lg font-semibold">{user?.name || 'Employee'}</span>
+                    {/* Role chip */}
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold border ${roleChip}`}>
+                      <Shield className="w-3.5 h-3.5" />
+                      {role === 'admin' ? 'Admin' : 'Employee'}
+                    </span>
                   </div>
-                  <div className="flex items-center gap-2 bg-white/20 backdrop-blur-md px-3 md:px-4 py-1.5 md:py-2 rounded-full border border-white/30">
-                    <User className="w-3 h-3 md:w-4 md:h-4 text-white" />
-                    <span className="text-white font-semibold text-xs md:text-sm">ID: {user?.employeeId || user?._id?.slice(-6)}</span>
+
+                  <div className="flex flex-wrap gap-2">
+                    <span className="inline-flex items-center gap-1.5 bg-white/15 backdrop-blur px-2.5 py-1 rounded-full border border-white/25 text-[12px]">
+                      <Building className="w-3.5 h-3.5" />
+                      {employee?.department || '—'}
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 bg-white/15 backdrop-blur px-2.5 py-1 rounded-full border border-white/25 text-[12px] capitalize">
+                      <Briefcase className="w-3.5 h-3.5" />
+                      {employee?.designation || role}
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 bg-white/15 backdrop-blur px-2.5 py-1 rounded-full border border-white/25 text-[12px]">
+                      <User className="w-3.5 h-3.5" />
+                      ID: {employee?.employeeId}
+                    </span>
                   </div>
                 </div>
-                <p className="text-white/80 mt-3 text-xs md:text-sm">Welcome to your personal workspace 🚀</p>
+              </div>
+
+              {/* RIGHT: greeting + time */}
+              <div className="lg:justify-end lg:text-right flex items-center">
+                <div className="ml-0 lg:ml-auto">
+                  <div className="flex lg:justify-end items-center gap-2 text-white">
+                    <Glyph />
+                    <div className="text-xl md:text-2xl font-bold">{greeting}</div>
+                    <div className="opacity-80">•</div>
+                    {/* time larger per your request */}
+                    <div className="tabular-nums text-2xl md:text-3xl font-extrabold">{timeStr}</div>
+                  </div>
+                  {/* name on its own line under time (as in your example) */}
+                  <div className="text-white/90 mt-1 text-sm md:text-base font-semibold">
+                    {user?.name || 'Employee'}
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Right: Date Card */}
-            <div className="bg-white/15 backdrop-blur-xl rounded-2xl md:rounded-3xl p-6 md:p-8 text-center border border-white/30 shadow-2xl">
-              <div className="text-white/80 text-xs md:text-sm mb-2 font-semibold uppercase tracking-wide">Today</div>
-              <div className="text-5xl md:text-6xl font-bold text-white mb-2">
-                {new Date().getDate()}
-              </div>
-              <div className="text-white text-sm md:text-base font-semibold mb-1">
-                {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-              </div>
-              <div className="text-white/70 text-xs md:text-sm font-medium">
-                {new Date().toLocaleDateString('en-US', { weekday: 'long' })}
-              </div>
+            {/* action row like: My Leaves • My Payroll • Settings • Logout */}
+            <div className="flex flex-wrap items-center gap-2.5 mt-5">
+              <button
+                onClick={() => navigate(`/employee-dashboard/leaves/${user?.employeeId || user?._id}`)}
+                className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-white/15 text-white font-semibold rounded-lg border border-white/30 hover:bg-white/25 transition text-[13px]"
+              >
+                <Calendar className="w-4 h-4" />
+                My Leaves
+              </button>
+              <button
+                onClick={() => navigate(`/employee-dashboard/salary/${employeeId}`)}
+                className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-white/15 text-white font-semibold rounded-lg border border-white/30 hover:bg-white/25 transition text-[13px]"
+              >
+                <DollarSign className="w-4 h-4" />
+                My Payroll
+              </button>
+              <button
+                onClick={() => navigate('/employee-dashboard/settings')}
+                className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-white/15 text-white font-semibold rounded-lg border border-white/30 hover:bg-white/25 transition text-[13px]"
+              >
+                <Settings className="w-4 h-4" />
+                Settings
+              </button>
+              <button
+                onClick={() => {
+                  if (window.confirm('Logout now?')) logout();
+                }}
+                className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-rose-500/90 text-white font-semibold rounded-lg border border-rose-400/40 hover:bg-rose-600 transition text-[13px]"
+              >
+                <LogOut className="w-4 h-4" />
+                Logout
+              </button>
             </div>
           </div>
         </div>
-      </div>
+        {/* ===================== /HEADER ===================== */}
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-        {/* Attendance Rate */}
-        <div className="group relative bg-white rounded-2xl shadow-lg hover:shadow-2xl overflow-hidden transform hover:-translate-y-2 transition-all cursor-pointer">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-full -mr-16 -mt-16"></div>
-          <div className="relative p-5 md:p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="bg-gradient-to-br from-green-500 to-emerald-600 p-3 md:p-4 rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
-                <CheckCircle className="w-6 h-6 md:w-8 md:h-8 text-white" />
-              </div>
-              <ArrowRight className="w-5 h-5 md:w-6 md:h-6 text-gray-400 group-hover:text-green-600 group-hover:translate-x-1 transition-all" />
+        {/* QUICK ACTIONS (just under header) */}
+        <div className="bg-white rounded-2xl shadow-xl p-5 border border-slate-200">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="bg-gradient-to-r from-cyan-400 to-blue-500 p-2.5 rounded-xl shadow-lg">
+              <Zap className="w-5 h-5 text-white" />
             </div>
-            <h3 className="text-gray-600 text-xs md:text-sm font-bold uppercase tracking-wide mb-2">Attendance</h3>
-            <p className="text-4xl md:text-5xl font-bold text-gray-900 mb-2">{stats.attendanceRate}%</p>
-            <p className="text-green-600 text-xs md:text-sm font-semibold">Last check-in: {stats.lastCheckIn}</p>
-          </div>
-        </div>
-
-        {/* Available Leaves */}
-        <div className="group relative bg-white rounded-2xl shadow-lg hover:shadow-2xl overflow-hidden transform hover:-translate-y-2 transition-all cursor-pointer"
-             onClick={() => navigate(`/employee-dashboard/leave/${user?.employeeId || user?._id}`)}>
-          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-full -mr-16 -mt-16"></div>
-          <div className="relative p-5 md:p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="bg-gradient-to-br from-blue-500 to-cyan-600 p-3 md:p-4 rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
-                <Calendar className="w-6 h-6 md:w-8 md:h-8 text-white" />
-              </div>
-              <ArrowRight className="w-5 h-5 md:w-6 md:h-6 text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
+            <div>
+              <h3 className="text-lg font-bold text-slate-900">Quick Actions</h3>
+              <p className="text-slate-600 text-xs">Your frequently used areas</p>
             </div>
-            <h3 className="text-gray-600 text-xs md:text-sm font-bold uppercase tracking-wide mb-2">Available Leaves</h3>
-            <p className="text-4xl md:text-5xl font-bold text-gray-900 mb-2">{stats.leavesAvailable}</p>
-            <p className="text-blue-600 text-xs md:text-sm font-semibold">{stats.leavesTaken} days used</p>
           </div>
-        </div>
 
-        {/* Upcoming Leaves */}
-        <div className="group relative bg-white rounded-2xl shadow-lg hover:shadow-2xl overflow-hidden transform hover:-translate-y-2 transition-all cursor-pointer"
-             onClick={() => navigate(`/employee-dashboard/leave/${user?.employeeId || user?._id}`)}>
-          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-orange-500/10 to-red-500/10 rounded-full -mr-16 -mt-16"></div>
-          <div className="relative p-5 md:p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="bg-gradient-to-br from-orange-500 to-red-600 p-3 md:p-4 rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
-                <Clock className="w-6 h-6 md:w-8 md:h-8 text-white" />
-              </div>
-              <ArrowRight className="w-5 h-5 md:w-6 md:h-6 text-gray-400 group-hover:text-orange-600 group-hover:translate-x-1 transition-all" />
-            </div>
-            <h3 className="text-gray-600 text-xs md:text-sm font-bold uppercase tracking-wide mb-2">Upcoming Leaves</h3>
-            <p className="text-4xl md:text-5xl font-bold text-gray-900 mb-2">{stats.upcomingLeaves}</p>
-            <p className="text-orange-600 text-xs md:text-sm font-semibold">Scheduled this month</p>
-          </div>
-        </div>
-
-        {/* Current Salary */}
-        <div className="group relative bg-white rounded-2xl shadow-lg hover:shadow-2xl overflow-hidden transform hover:-translate-y-2 transition-all cursor-pointer"
-             onClick={() => navigate(`/employee-dashboard/salary/${user?.employeeId || user?._id}`)}>
-          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-full -mr-16 -mt-16"></div>
-          <div className="relative p-5 md:p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="bg-gradient-to-br from-purple-500 to-pink-600 p-3 md:p-4 rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
-                <DollarSign className="w-6 h-6 md:w-8 md:h-8 text-white" />
-              </div>
-              <ArrowRight className="w-5 h-5 md:w-6 md:h-6 text-gray-400 group-hover:text-purple-600 group-hover:translate-x-1 transition-all" />
-            </div>
-            <h3 className="text-gray-600 text-xs md:text-sm font-bold uppercase tracking-wide mb-2">Current Salary</h3>
-            <p className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">{stats.currentSalary}</p>
-            <p className="text-purple-600 text-xs md:text-sm font-semibold">Monthly payment</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Actions - 6 ITEMS INCLUDING LOGOUT */}
-      <div className="bg-white rounded-2xl md:rounded-3xl shadow-xl p-6 md:p-8">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="bg-gradient-to-r from-cyan-400 to-blue-500 p-2.5 md:p-3 rounded-xl shadow-lg">
-            <Zap className="w-6 h-6 md:w-7 md:h-7 text-white" />
-          </div>
-          <div>
-            <h2 className="text-xl md:text-2xl font-bold text-gray-800">Quick Actions</h2>
-            <p className="text-gray-600 text-xs md:text-sm">Access your key features</p>
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
-          {quickActions.map((action, index) => (
+          <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-3">
             <button
-              key={index}
-              onClick={action.action}
-              className={`group relative bg-gradient-to-br ${action.bgColor} hover:shadow-xl rounded-xl md:rounded-2xl p-4 md:p-6 transition-all transform hover:scale-105 border ${action.borderColor}`}
+              onClick={() => navigate('/employee-dashboard')}
+              className="group bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200 rounded-xl p-4 hover:shadow-lg hover:-translate-y-1 transition"
             >
-              <div className={`bg-gradient-to-br ${action.color} w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl flex items-center justify-center mb-3 md:mb-4 mx-auto group-hover:scale-110 transition-transform shadow-lg`}>
-                <action.icon className="w-6 h-6 md:w-8 md:h-8 text-white" />
+              <div className="bg-gradient-to-br from-blue-500 to-cyan-600 w-12 h-12 rounded-lg flex items-center justify-center mb-2.5 mx-auto group-hover:scale-110 transition">
+                <ClipboardList className="w-6 h-6 text-white" />
               </div>
-              <p className="text-xs md:text-sm font-bold text-gray-800 text-center">{action.label}</p>
+              <p className="text-[13px] font-bold text-center text-slate-800">Dashboard</p>
             </button>
-          ))}
-        </div>
-      </div>
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
-        {/* Recent Activities - Takes 2 columns */}
-        <div className="lg:col-span-2 bg-white rounded-2xl md:rounded-3xl shadow-xl overflow-hidden">
-          <div className="bg-gradient-to-r from-cyan-600 to-blue-600 p-5 md:p-6">
-            <h2 className="text-lg md:text-xl font-bold text-white flex items-center gap-2">
-              <Activity className="w-5 h-5 md:w-6 md:h-6" />
-              Recent Activities
+            <button
+              onClick={() => navigate(`/employee-dashboard/profile/${employeeId}`)}
+              className="group bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-xl p-4 hover:shadow-lg hover:-translate-y-1 transition"
+            >
+              <div className="bg-gradient-to-br from-purple-500 to-pink-600 w-12 h-12 rounded-lg flex items-center justify-center mb-2.5 mx-auto group-hover:scale-110 transition">
+                <User className="w-6 h-6 text-white" />
+              </div>
+              <p className="text-[13px] font-bold text-center text-slate-800">My Profile</p>
+            </button>
+
+            <button
+              onClick={() => navigate(`/employee-dashboard/Leaves/${employeeId}`)}
+              className="group bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-4 hover:shadow-lg hover:-translate-y-1 transition"
+            >
+              <div className="bg-gradient-to-br from-orange-500 to-rose-600 w-12 h-12 rounded-lg flex items-center justify-center mb-2.5 mx-auto group-hover:scale-110 transition">
+                <Calendar className="w-6 h-6 text-white" />
+              </div>
+              <p className="text-[13px] font-bold text-center text-slate-800">Leaves</p>
+            </button>
+
+            <button
+              onClick={() => navigate(`/employee-dashboard/salary/${employeeId}`)}
+              className="group bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 hover:shadow-lg hover:-translate-y-1 transition"
+            >
+              <div className="bg-gradient-to-br from-green-500 to-emerald-600 w-12 h-12 rounded-lg flex items-center justify-center mb-2.5 mx-auto group-hover:scale-110 transition">
+                <DollarSign className="w-6 h-6 text-white" />
+              </div>
+              <p className="text-[13px] font-bold text-center text-slate-800">Salary</p>
+            </button>
+
+            <button
+              onClick={() => navigate('/employee-dashboard/settings')}
+              className="group bg-gradient-to-br from-slate-50 to-gray-50 border border-gray-200 rounded-xl p-4 hover:shadow-lg hover:-translate-y-1 transition"
+            >
+              <div className="bg-gradient-to-br from-gray-500 to-slate-600 w-12 h-12 rounded-lg flex items-center justify-center mb-2.5 mx-auto group-hover:scale-110 transition">
+                <Settings className="w-6 h-6 text-white" />
+              </div>
+              <p className="text-[13px] font-bold text-center text-slate-800">Settings</p>
+            </button>
+
+            <button
+              onClick={handleLogout}
+              className="group bg-gradient-to-br from-rose-50 to-red-50 border border-rose-200 rounded-xl p-4 hover:shadow-lg hover:-translate-y-1 transition"
+            >
+              <div className="bg-gradient-to-br from-red-500 to-rose-600 w-12 h-12 rounded-lg flex items-center justify-center mb-2.5 mx-auto group-hover:scale-110 transition">
+                <LogOut className="w-6 h-6 text-white" />
+              </div>
+              <p className="text-[13px] font-bold text-center text-slate-800">Logout</p>
+            </button>
+          </div>
+        </div>
+
+        {/* LEAVE / PAY METRICS */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+          <DashboardCard
+            title="Leave Balance (Total)"
+            value={`${totalRemaining} day(s)`}
+            subtitle={
+              balance
+                ? `Casual ${balance.remainingLeaves?.casual || 0} • Sick ${balance.remainingLeaves?.sick || 0} • Annual ${balance.remainingLeaves?.annual || 0}`
+                : balError || '—'
+            }
+            gradient="from-emerald-50 to-emerald-100"
+            border="border-emerald-200"
+            Icon={ClipboardList}
+            onClick={() => navigate(`/employee-dashboard/EmployeeLeaves/${employeeId}`)}
+          />
+          <DashboardCard
+            title="Leave Used (YTD)"
+            value={`${totalUsed} day(s)`}
+            subtitle="Approved + Pending"
+            gradient="from-amber-50 to-amber-100"
+            border="border-amber-200"
+            Icon={Calendar}
+            onClick={() => navigate(`/employee-dashboard/EmployeeLeaves/${employeeId}`)}
+          />
+          <DashboardCard
+            title="Upcoming Leaves"
+            value={`${upcomingLeavesCount}`}
+            subtitle="Starting today or later"
+            gradient="from-indigo-50 to-indigo-100"
+            border="border-indigo-200"
+            Icon={Activity}
+            onClick={() => navigate(`/employee-dashboard/EmployeeLeaves/${employeeId}`)}
+          />
+          <DashboardCard
+            title="Net Salary"
+            value={fmtMoney(net)}
+            subtitle={`Gross: ${fmtMoney(gross)}`}
+            gradient="from-sky-50 to-cyan-100"
+            border="border-cyan-200"
+            Icon={DollarSign}
+            onClick={() => navigate(`/employee-dashboard/salary/${employeeId}`)}
+          />
+        </div>
+
+        {/* RECENT LEAVE ACTIVITY */}
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
+          <div className="bg-gradient-to-r from-cyan-600 to-indigo-600 p-5 md:p-6">
+            <h2 className="text-white text-base md:text-lg font-bold flex items-center gap-2">
+              <Activity className="w-5 h-5" />
+              Recent Leave Activity
             </h2>
-            <p className="text-cyan-100 text-xs md:text-sm mt-1">Your latest updates and notifications</p>
-          </div>
-          
-          <div className="p-5 md:p-6 space-y-3">
-            {recentActivities.map((activity) => {
-              const IconComponent = activity.icon;
-              return (
-                <div key={activity.id} className={`flex items-start gap-3 md:gap-4 p-4 md:p-5 bg-gradient-to-r ${activity.gradientFrom} ${activity.gradientTo} rounded-xl hover:shadow-md transition-all border ${activity.borderColor}`}>
-                  <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md ${activity.bg}`}>
-                    <IconComponent className={`w-5 h-5 md:w-6 md:h-6 ${activity.color}`} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs md:text-sm font-bold text-gray-800">{activity.message}</p>
-                    <p className="text-xs text-gray-600 mt-1">{activity.subtext}</p>
-                    <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      {activity.time}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Personal Overview - Takes 1 column */}
-        <div className="lg:col-span-1 space-y-4 md:space-y-6">
-          {/* Performance Overview */}
-          <div className="bg-white rounded-2xl md:rounded-3xl shadow-xl overflow-hidden">
-            <div className="bg-gradient-to-r from-green-600 to-emerald-600 p-5 md:p-6">
-              <h2 className="text-lg md:text-xl font-bold text-white flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 md:w-6 md:h-6" />
-                My Performance
-              </h2>
-            </div>
-            
-            <div className="p-5 md:p-6 space-y-4">
-              <div className="p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl border border-blue-200">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-semibold text-blue-700">Attendance</span>
-                  <span className="text-lg font-bold text-blue-900">{stats.attendanceRate}%</span>
-                </div>
-                <div className="w-full bg-blue-200 rounded-full h-2 overflow-hidden">
-                  <div 
-                    className="bg-gradient-to-r from-blue-500 to-cyan-600 h-full rounded-full transition-all"
-                    style={{ width: `${stats.attendanceRate}%` }}
-                  ></div>
-                </div>
-              </div>
-
-              <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-semibold text-green-700">Task Completion</span>
-                  <span className="text-lg font-bold text-green-900">87%</span>
-                </div>
-                <div className="w-full bg-green-200 rounded-full h-2 overflow-hidden">
-                  <div 
-                    className="bg-gradient-to-r from-green-500 to-emerald-600 h-full rounded-full transition-all"
-                    style={{ width: '87%' }}
-                  ></div>
-                </div>
-              </div>
-
-              <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-200">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-semibold text-purple-700">Projects</span>
-                  <span className="text-lg font-bold text-purple-900">5</span>
-                </div>
-                <div className="w-full bg-purple-200 rounded-full h-2 overflow-hidden">
-                  <div 
-                    className="bg-gradient-to-r from-purple-500 to-pink-600 h-full rounded-full transition-all"
-                    style={{ width: '75%' }}
-                  ></div>
-                </div>
-              </div>
-            </div>
+            <p className="text-cyan-100 text-xs mt-1">Latest updates from your leave requests</p>
           </div>
 
-          {/* Quick Info */}
-          <div className="bg-white rounded-2xl md:rounded-3xl shadow-xl overflow-hidden">
-            <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-5 md:p-6">
-              <h2 className="text-lg md:text-xl font-bold text-white flex items-center gap-2">
-                <BarChart3 className="w-5 h-5 md:w-6 md:h-6" />
-                Quick Info
-              </h2>
-            </div>
-            
-            <div className="p-5 md:p-6 space-y-3">
-              <div className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl border border-blue-200">
-                <span className="text-xs font-semibold text-gray-700">Department</span>
-                <span className="text-sm font-bold text-blue-600">Engineering</span>
+          <div className="p-5 md:p-6">
+            {histError ? (
+              <div className="text-rose-600 text-sm">{histError}</div>
+            ) : (leaves || []).length === 0 ? (
+              <div className="text-slate-600 text-sm">You have no leave applications yet.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full border-separate border-spacing-y-2">
+                  <thead>
+                    <tr className="text-left text-[11px] uppercase tracking-wider text-slate-500">
+                      <th className="px-3 py-2">Type</th>
+                      <th className="px-3 py-2">Dates</th>
+                      <th className="px-3 py-2">Days</th>
+                      <th className="px-3 py-2">Reason</th>
+                      <th className="px-3 py-2">Status</th>
+                      <th className="px-3 py-2">Applied</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {leaves.slice(0, 6).map((lv) => (
+                      <tr key={lv._id} className="bg-white border border-slate-200">
+                        <td className="px-3 py-3 font-semibold text-slate-900 capitalize">{lv.leaveType}</td>
+                        <td className="px-3 py-3 text-slate-700">
+                          {fmtDate(lv.startDate)} – {fmtDate(lv.endDate)}
+                        </td>
+                        <td className="px-3 py-3 text-slate-700">{lv.days}</td>
+                        <td className="px-3 py-3 text-slate-700 max-w-[320px] line-clamp-2">{lv.reason}</td>
+                        <td className="px-3 py-3">
+                          <StatusBadge status={lv.status} />
+                        </td>
+                        <td className="px-3 py-3 text-slate-700">{fmtDate(lv.appliedDate)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-              <div className="flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
-                <span className="text-xs font-semibold text-gray-700">Join Date</span>
-                <span className="text-sm font-bold text-green-600">Jan 2023</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-gradient-to-r from-orange-50 to-red-50 rounded-xl border border-orange-200">
-                <span className="text-xs font-semibold text-gray-700">Manager</span>
-                <span className="text-sm font-bold text-orange-600">John Smith</span>
-              </div>
+            )}
+
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={() => navigate(`/employee-dashboard/EmployeeLeaves/${employeeId}`)}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 transition text-sm"
+              >
+                View all
+                <ArrowRight className="w-4 h-4" />
+              </button>
             </div>
           </div>
         </div>
+        {/* /RECENT LEAVE ACTIVITY */}
       </div>
     </div>
   );

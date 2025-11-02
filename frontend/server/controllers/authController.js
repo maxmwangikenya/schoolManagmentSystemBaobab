@@ -1,340 +1,334 @@
+// controllers/authController.js
 import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
 import User from '../models/User.js';
 import Employee from '../models/Employee.js';
 import PasswordPolicy from '../models/PasswordPolicy.js';
 import PasswordHistory from '../models/PasswordHistory.js';
-import dotenv from "dotenv";
+
 dotenv.config();
 
-// Check if email exists
-const checkEmail = async (req, res) => {
-    try {
-        const { email } = req.body;
-        
-        if (!email) {
-            return res.status(400).json({ 
-                success: false, 
-                error: 'Email is required' 
-            });
-        }
+/**
+ * POST /api/auth/check-email
+ * Body: { email }
+ */
+export const checkEmail = async (req, res) => {
+  try {
+    const { email } = req.body;
 
-        const user = await User.findOne({ email: email.toLowerCase().trim() });
-        
-        res.json({ 
-            exists: !!user,
-            role: user?.role || null
-        });
-    } catch (error) {
-        res.status(500).json({ 
-            success: false, 
-            error: 'Server error during email check' 
-        });
+    if (!email || typeof email !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: 'Email is required'
+      });
     }
+
+    const normalized = email.toLowerCase().trim();
+    const user = await User.findOne({ email: normalized });
+
+    return res.json({
+      success: true,
+      exists: !!user,
+      role: user?.role || null
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      error: 'Server error during email check'
+    });
+  }
 };
 
-// Login controller - FIXED VERSION
-const login = async (req, res) => {
-    try {
-        const { email, password } = req.body;
-        
+/**
+ * POST /api/auth/login
+ * Body: { email, password }
+ * - Finds User by email
+ * - Compares password
+ * - If role === 'employee', finds linked Employee via { user: user._id }
+ * - Returns JWT + user payload (with employeeId if applicable)
+ */
+export const login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
 
-        
-        // Validate input
-        if (!email || !password) {
-            return res.status(400).json({ 
-                success: false, 
-                error: "Email and password are required" 
-            });
-        }
-        
-        // Find user with password field
-        
-        const user = await User.findOne({ 
-            email: email.toLowerCase().trim() 
-        }).select('+password');
-        
-        if (!user) {
-            return res.status(401).json({ 
-                success: false, 
-                error: "Invalid credentials" 
-            });
-        }
-
-
-
-        // Check if account is locked
-        if (user.isAccountLocked && user.isAccountLocked()) {
-            const minutesRemaining = Math.ceil((user.accountLockedUntil - Date.now()) / (1000 * 60));
-            return res.status(423).json({
-                success: false,
-                error: `Account is locked. Try again in ${minutesRemaining} minutes.`
-            });
-        }
-
-        // Verify password using the User model's comparePassword method
-        console.log('Comparing passwords...');
-        const isMatch = await user.comparePassword(password);
-        console.log('Password match result:', isMatch);
-        
-        if (!isMatch) {
-            console.log('ERROR: Password does not match');
-            
-            // Increment failed attempts
-            if (user.incrementLoginAttempts) {
-                await user.incrementLoginAttempts();
-            }
-            
-            return res.status(401).json({ 
-                success: false, 
-                error: "Invalid credentials" 
-            });
-        }
-
-        console.log('SUCCESS: Password matches');
-
-        // Reset failed login attempts on successful login
-        if (user.resetLoginAttempts) {
-            await user.resetLoginAttempts();
-        }
-
-        // Find associated employee if role is employee
-        let employeeId = null;
-        if (user.role === 'employee') {
-            console.log('Finding employee document...');
-            const employee = await Employee.findOne({ 
-                email: email.toLowerCase().trim() 
-            });
-            
-            if (employee) {
-                employeeId = employee._id;
-                console.log('SUCCESS: Employee found:', employeeId);
-            } else {
-                console.log('WARNING: No employee record found');
-            }
-        }
-
-        // Check for JWT_SECRET
-        if (!process.env.JWT_SECRET) {
-            console.warn('WARNING: JWT_SECRET not set! Using fallback.');
-        }
-
-        // Generate JWT
-        
-        const token = jwt.sign(
-            { 
-                _id: user._id, 
-                role: user.role,
-                email: user.email
-            },
-            process.env.JWT_SECRET || 'fallback_secret_key',
-            { expiresIn: "7d" }
-        );
-
- 
-
-        // Send response
-        res.status(200).json({
-            success: true,
-            token,
-            user: {
-                _id: user._id,           
-                name: user.name,
-                email: user.email,
-                role: user.role,
-                employeeId: employeeId   
-            }
-        });
-        
-    } catch (error) {
-        res.status(500).json({ 
-            success: false, 
-            error: "Authentication failed. Please try again." 
-        });
+    // Validate input
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        error: 'Email and password are required'
+      });
     }
+
+    const normalized = email.toLowerCase().trim();
+
+    // Include password explicitly
+    const user = await User.findOne({ email: normalized }).select('+password');
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid credentials'
+      });
+    }
+
+    // Optional: account lock checks (only if you’ve implemented these on the model)
+    if (user.isAccountLocked && user.isAccountLocked()) {
+      const minutesRemaining = Math.ceil((user.accountLockedUntil - Date.now()) / (1000 * 60));
+      return res.status(423).json({
+        success: false,
+        error: `Account is locked. Try again in ${minutesRemaining} minutes.`
+      });
+    }
+
+    // Verify password using the User model's comparePassword method
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      // Increment failed attempts if you’ve implemented it
+      if (user.incrementLoginAttempts) {
+        await user.incrementLoginAttempts();
+      }
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid credentials'
+      });
+    }
+
+    // Reset failed attempts if you’ve implemented it
+    if (user.resetLoginAttempts) {
+      await user.resetLoginAttempts();
+    }
+
+    // Resolve associated employee by reliable link (user._id), not by email
+    let employeeId = null;
+    if (user.role === 'employee') {
+      const employee = await Employee.findOne({ user: user._id }).select('_id');
+      // Fallback: if older data doesn’t have link yet, try by email (optional)
+      if (!employee) {
+        const fallback = await Employee.findOne({ email: normalized }).select('_id');
+        employeeId = fallback ? fallback._id : null;
+      } else {
+        employeeId = employee._id;
+      }
+    }
+
+    // Generate JWT
+    if (!process.env.JWT_SECRET) {
+      console.warn('WARNING: JWT_SECRET not set! Using fallback.');
+    }
+
+    const token = jwt.sign(
+      {
+        _id: user._id,
+        role: user.role,
+        email: user.email
+      },
+      process.env.JWT_SECRET || 'fallback_secret_key',
+      { expiresIn: '7d' }
+    );
+
+    return res.status(200).json({
+      success: true,
+      token,
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        employeeId
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      error: 'Authentication failed. Please try again.'
+    });
+  }
 };
 
-// Register controller - FIXED VERSION (NO MANUAL HASHING)
-const register = async (req, res) => {
+/**
+ * POST /api/auth/register
+ * Body: { name, email, password, role }
+ * - Plain password is passed to the model; model pre-save hook hashes it once
+ * - Optional password policy + history logging guarded by try/catch
+ */
+export const register = async (req, res) => {
+  try {
+    const { name, email, password, role } = req.body;
+
+    // Validate required fields
+    if (!name || !email || !password || !role) {
+      return res.status(400).json({
+        success: false,
+        error: 'All fields are required'
+      });
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+    const normalizedRole = role.toLowerCase();
+
+    // Validate role
+    if (!['admin', 'employee'].includes(normalizedRole)) {
+      return res.status(400).json({
+        success: false,
+        error: "Role must be either 'admin' or 'employee'"
+      });
+    }
+
+    // Check if user already exists FIRST
+    const existingUser = await User.findOne({ email: normalizedEmail });
+    if (existingUser) {
+      return res.status(409).json({
+        success: false,
+        error: 'User with this email already exists'
+      });
+    }
+
+    // Validate password against policy (if implemented)
+    let validation;
     try {
-        const { name, email, password, role } = req.body;
+      if (typeof User.validatePasswordAgainstPolicy === 'function') {
+        validation = await User.validatePasswordAgainstPolicy(password);
+      } else if (typeof PasswordPolicy?.validate === 'function') {
+        validation = await PasswordPolicy.validate(password);
+      } else {
+        // Basic fallback
+        validation = {
+          isValid: password.length >= 6,
+          errors: password.length >= 6 ? [] : ['Password must be at least 6 characters']
+        };
+      }
+    } catch {
+      // Ensure we never block due to policy service error
+      validation = {
+        isValid: password.length >= 6,
+        errors: password.length >= 6 ? [] : ['Password must be at least 6 characters']
+      };
+    }
 
+    if (!validation.isValid) {
+      return res.status(400).json({
+        success: false,
+        error: validation.errors.join('. '),
+        validationDetails: validation
+      });
+    }
 
+    // Create user (model will hash password once in pre-save hook)
+    const newUser = new User({
+      name: name.trim(),
+      email: normalizedEmail,
+      password, // plain → pre-save hook hashes once
+      role: normalizedRole,
+      passwordChangedAt: new Date()
+    });
 
-        // Validate required fields
-        if (!name || !email || !password || !role) {
+    await newUser.save();
 
-            
-            return res.status(400).json({
-                success: false,
-                error: "All fields are required",
-                missing: missing
-            });
-        }
-
-        // Validate role
-        if (!['admin', 'employee'].includes(role.toLowerCase())) {
-            return res.status(400).json({
-                success: false,
-                error: "Role must be either 'admin' or 'employee'"
-            });
-        }
-
-
-
-        // Check if user already exists FIRST
-
-        const existingUser = await User.findOne({ 
-            email: email.toLowerCase().trim() 
-        });
-        
-        if (existingUser) {
-
-            return res.status(409).json({
-                success: false,
-                error: "User with this email already exists"
-            });
-        }
-
-        console.log('SUCCESS: Email is available');
-
-        // Validate password against policy
-        let validation;
-        try {
-            validation = await User.validatePasswordAgainstPolicy(password);
-        } catch (policyError) {
-            // Use basic validation
-            validation = {
-                isValid: password.length >= 6,
-                errors: password.length >= 6 ? [] : ['Password must be at least 6 characters']
-            };
-        }
-        
-        if (!validation.isValid) {
-
-            return res.status(400).json({
-                success: false,
-                error: validation.errors.join('. '),
-                validationDetails: validation
-            });
-        }
-
-
-        
-        const newUser = new User({
-            name: name.trim(),
-            email: email.toLowerCase().trim(),
-            password: password,  // Plain password - model will hash it
-            role: role.toLowerCase(),
-            passwordChangedAt: new Date()
-        });
-
-        console.log('User document created (not saved yet)');
-        console.log('About to save user to database...');
-
-        // Save user to database (pre-save hook will hash the password automatically)
-        await newUser.save();
-        
-
-
-        // Verify the user was saved with hashed password
+    // Optionally log password creation in history
+    try {
+      if (typeof PasswordHistory?.logPasswordChange === 'function') {
+        // Fetch hashed password to store in history (select +password)
         const savedUser = await User.findById(newUser._id).select('+password');
-
-
-        // Log password creation in history
-        try {
-            await PasswordHistory.logPasswordChange({
-                userId: newUser._id,
-                userModel: 'User',
-                oldPasswordHash: savedUser.password,
-                changeType: 'system_reset',
-                reason: 'Initial registration'
-            });
-            console.log('SUCCESS: Password history logged');
-        } catch (historyError) {
-            console.warn('WARNING: Password history logging failed:', historyError.message);
-            // Don't fail registration if history logging fails
-        }
-
-        // Generate JWT token
-        console.log('Generating JWT token...');
-        const token = jwt.sign(
-            {
-                _id: newUser._id,
-                role: newUser.role,
-                email: newUser.email
-            },
-            process.env.JWT_SECRET || 'fallback_secret_key',
-            { expiresIn: "7d" } 
-        );
-
-
-        res.status(201).json({
-            success: true,
-            message: "Registration successful",
-            token,
-            user: {
-                _id: newUser._id,
-                name: newUser.name,
-                email: newUser.email,
-                role: newUser.role
-            }
+        await PasswordHistory.logPasswordChange({
+          userId: newUser._id,
+          userModel: 'User',
+          oldPasswordHash: savedUser?.password,
+          changeType: 'system_reset',
+          reason: 'Initial registration'
         });
-
-    } catch (error) {
-        
-        if (error.code === 11000) {
-            console.log('Duplicate key error - user already exists');
-            return res.status(409).json({
-                success: false,
-                error: "User with this email already exists"
-            });
-        }
-
-        if (error.name === 'ValidationError') {
-            return res.status(400).json({
-                success: false,
-                error: "Validation failed",
-                details: Object.values(error.errors).map(e => e.message)
-            });
-        }
-
-        res.status(500).json({
-            success: false,
-            error: "Registration failed. Please try again.",
-            details: process.env.NODE_ENV === 'development' ? error.message : undefined
-        });
+      }
+    } catch (historyError) {
+      console.warn('Password history logging failed:', historyError?.message || historyError);
+      // Non-fatal
     }
+
+    // JWT
+    const token = jwt.sign(
+      {
+        _id: newUser._id,
+        role: newUser.role,
+        email: newUser.email
+      },
+      process.env.JWT_SECRET || 'fallback_secret_key',
+      { expiresIn: '7d' }
+    );
+
+    return res.status(201).json({
+      success: true,
+      message: 'Registration successful',
+      token,
+      user: {
+        _id: newUser._id,
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role
+      }
+    });
+  } catch (error) {
+    if (error.code === 11000) {
+      // Duplicate key
+      return res.status(409).json({
+        success: false,
+        error: 'User with this email already exists'
+      });
+    }
+
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: Object.values(error.errors).map(e => e.message)
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      error: 'Registration failed. Please try again.',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
 };
 
-// Logout controller
-const logout = async (req, res) => {
-    try {
-        res.status(200).json({
-            success: true,
-            message: "Logged out successfully"
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: "Logout failed"
-        });
-    }
+/**
+ * POST /api/auth/logout
+ */
+export const logout = async (req, res) => {
+  try {
+    // If you store refresh tokens, you could invalidate them here.
+    return res.status(200).json({
+      success: true,
+      message: 'Logged out successfully'
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      error: 'Logout failed'
+    });
+  }
 };
 
-// Verify token
-const verifyToken = async (req, res) => {
-    try {
-        res.json({
-            success: true,
-            message: "Token is valid",
-            user: req.user
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: "Token verification failed"
-        });
-    }
+/**
+ * GET /api/auth/verify
+ * (Assumes you have auth middleware that sets req.user)
+ */
+export const verifyToken = async (req, res) => {
+  try {
+    return res.json({
+      success: true,
+      message: 'Token is valid',
+      user: req.user
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      error: 'Token verification failed'
+    });
+  }
 };
 
-export { login, register, logout, checkEmail, verifyToken };
+export default {
+  checkEmail,
+  login,
+  register,
+  logout,
+  verifyToken
+};

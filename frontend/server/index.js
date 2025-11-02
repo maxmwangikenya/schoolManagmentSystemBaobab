@@ -7,22 +7,22 @@ import fs from 'fs';
 import connectToDatabase from './db/db.js';
 
 // Import routes
-import authRouter from './routes/auth.js';
+
+import authRouter from './routes/auth.js'; // <-- ADD THIS
 import departmentRouter from './routes/department.js';
 import employeeRouter from './routes/employee.js';
 import salaryRouter from './routes/salary.js';
 import leaveRouter from './routes/leave.js';
 import reportRouter from './routes/report.js';
 import payrollRouter from './routes/payroll.js';
-
 // Connect to database
 connectToDatabase();
 
-// ✅ CREATE EXPRESS APP (BEFORE USING IT!)
+// Create app
 const app = express();
 const __dirname = path.resolve();
 
-// Middleware
+// CORS
 const allowedOrigins = [
   'https://school-managment-system-baobab.vercel.app',
   'http://localhost:5173',
@@ -32,11 +32,8 @@ const allowedOrigins = [
 app.use(cors({
   origin: function (origin, callback) {
     if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    } else {
-      return callback(new Error('Not allowed by CORS'));
-    }
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error('Not allowed by CORS'));
   },
   credentials: true
 }));
@@ -51,11 +48,11 @@ if (!fs.existsSync(uploadsDir)) {
   console.log('✅ Created uploads directory:', uploadsDir);
 }
 
-// Serve static files
+// Static files
 app.use('/public', express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
-// Log static file attempts (helpful for debugging)
+// Log static file attempts (optional)
 app.use((req, res, next) => {
   if (req.url.startsWith('/public') || req.url.startsWith('/uploads')) {
     console.log(`📁 Static file request: ${req.method} ${req.url}`);
@@ -63,18 +60,19 @@ app.use((req, res, next) => {
   next();
 });
 
-// API Routes (AFTER app is created)
-app.use('/api/auth', authRouter);
+// API Routes
+
+app.use('/api/auth', authRouter);  
 app.use('/api/departments', departmentRouter);
 app.use('/api/employees', employeeRouter);
-app.use('/api/salary', salaryRouter); 
+app.use('/api/salary', salaryRouter);
 app.use('/api/leaves', leaveRouter);
 app.use('/api/reports', reportRouter);
 app.use('/api/payroll', payrollRouter);
 
-// Health check route
+// Health check
 app.get('/', (req, res) => {
-  res.json({ 
+  res.json({
     success: true,
     message: 'Baobab Kindergarten API is running!',
     version: '1.0.0',
@@ -90,9 +88,8 @@ app.get('/', (req, res) => {
   });
 });
 
-// API health check
 app.get('/api/health', (req, res) => {
-  res.json({ 
+  res.json({
     success: true,
     status: 'healthy',
     timestamp: new Date().toISOString(),
@@ -100,11 +97,10 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Error handling middleware (must be after routes)
+// Errors
 app.use((err, req, res, next) => {
   console.error('Error Stack:', err.stack);
   console.error('Error Message:', err.message);
-  
   res.status(err.status || 500).json({
     success: false,
     error: err.message || 'Something went wrong!',
@@ -112,7 +108,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-// 404 handler (must be last)
+// 404
 app.use((req, res) => {
   console.log(`404 - Route not found: ${req.method} ${req.originalUrl}`);
   res.status(404).json({
@@ -124,21 +120,14 @@ app.use((req, res) => {
   });
 });
 
-// Start server
+// Start
 const PORT = process.env.PORT || 3000;
-
 app.listen(PORT, () => {
-
+  console.log(`✅ Server running on http://localhost:${PORT}`);
+  console.log('Auth & Password routes registered');
 });
 
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (err) => {
-  process.exit(1);
-});
-
-// Handle uncaught exceptions
-process.on('uncaughtException', (err) => {
-  process.exit(1);
-});
+process.on('unhandledRejection', () => process.exit(1));
+process.on('uncaughtException', () => process.exit(1));
 
 export default app;

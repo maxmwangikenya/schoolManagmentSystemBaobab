@@ -5,7 +5,6 @@ import Department from '../models/Department.js';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import bcrypt from 'bcrypt';
 import {
   calculateCompleteSalary,
   formatPhoneNumber,
@@ -13,9 +12,7 @@ import {
   validatePhoneNumber,
 } from '../utils/salaryCalculations.js';
 
-// =========================
 // Multer (single image)
-// =========================
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const uploadPath = './public/uploads';
@@ -30,8 +27,8 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({
-  storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const allowedTypes = /jpeg|jpg|png|gif/;
     const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
@@ -43,20 +40,12 @@ const upload = multer({
 
 export const uploadSingle = upload.single('image');
 
-// =========================
-// Employees
-// =========================
-
 // GET /api/employees
 export const getAllEmployees = async (req, res) => {
   try {
-    const employees = await Employee.find()
-      .populate('user', 'name email')
-      .sort({ createdAt: -1 });
-
+    const employees = await Employee.find().populate('user', 'name email').sort({ createdAt: -1 });
     res.json({ success: true, employees });
   } catch (error) {
-    console.error('Error fetching employees:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch employees' });
   }
 };
@@ -65,22 +54,14 @@ export const getAllEmployees = async (req, res) => {
 export const getEmployeeById = async (req, res) => {
   try {
     const employee = await Employee.findById(req.params.id).populate('user', 'name email');
-    if (!employee) {
-      return res.status(404).json({ success: false, error: 'Employee not found' });
-    }
+    if (!employee) return res.status(404).json({ success: false, error: 'Employee not found' });
     res.json(employee);
   } catch (error) {
-    console.error('Error fetching employee:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch employee' });
   }
 };
 
-// =========================
-// Salaries (from Employees)
-// =========================
-
 // GET /api/employees/salaries
-// Returns a FLAT array your UI can consume easily
 export const getAllEmployeeSalaries = async (req, res) => {
   try {
     const employees = await Employee.find()
@@ -92,16 +73,13 @@ export const getAllEmployeeSalaries = async (req, res) => {
       const s = e.salary || {};
       const d = s.deductions || {};
       const totalDeductions =
-        Number(d.nhif || 0) +
-        Number(d.nssf || 0) +
-        Number(d.housingLevy || 0) +
-        Number(d.paye || 0);
+        Number(d.nhif || 0) + Number(d.nssf || 0) + Number(d.housingLevy || 0) + Number(d.paye || 0);
 
       return {
         employeeId: e.employeeId,
         employeeName: e.name,
         designation: e.designation,
-        department: e.department || 'Unassigned', // department is a STRING in your schema
+        department: e.department || 'Unassigned',
         gross: Number(s.grossSalary || 0),
         net: Number(s.netSalary || 0),
         deductions: Number(totalDeductions || 0),
@@ -112,7 +90,6 @@ export const getAllEmployeeSalaries = async (req, res) => {
 
     res.json({ success: true, count: salaries.length, salaries });
   } catch (error) {
-    console.error('Error fetching employee salaries:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch employee salaries' });
   }
 };
@@ -120,14 +97,10 @@ export const getAllEmployeeSalaries = async (req, res) => {
 // GET /api/employees/:id/salary
 export const getEmployeeSalary = async (req, res) => {
   try {
-    const { id } = req.params;
-    const employee = await Employee.findById(id).select(
+    const employee = await Employee.findById(req.params.id).select(
       'name employeeId designation department salary createdAt updatedAt'
     );
-
-    if (!employee) {
-      return res.status(404).json({ success: false, error: 'Employee not found' });
-    }
+    if (!employee) return res.status(404).json({ success: false, error: 'Employee not found' });
 
     const s = employee.salary || {};
     res.json({
@@ -142,7 +115,6 @@ export const getEmployeeSalary = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Error fetching employee salary:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch employee salary' });
   }
 };
@@ -158,16 +130,13 @@ export const updateEmployeeSalary = async (req, res) => {
     }
 
     const employee = await Employee.findById(id);
-    if (!employee) {
-      return res.status(404).json({ success: false, error: 'Employee not found' });
-    }
+    if (!employee) return res.status(404).json({ success: false, error: 'Employee not found' });
 
     const salaryBreakdown = calculateCompleteSalary({
       basicSalary: parseFloat(basicSalary),
       allowances: allowances || {},
     });
 
-    // Ensure it matches schema keys
     employee.salary = {
       basicSalary: Number(salaryBreakdown.basicSalary ?? basicSalary) || 0,
       allowances: {
@@ -196,7 +165,6 @@ export const updateEmployeeSalary = async (req, res) => {
       breakdown: employee.salary,
     });
   } catch (error) {
-    console.error('Error updating salary:', error);
     res.status(500).json({ success: false, error: 'Failed to update salary' });
   }
 };
@@ -218,7 +186,7 @@ export const addEmployee = async (req, res) => {
       emergencyContactPhone,
       emergencyContactEmail,
       designation,
-      department, // this is the Department _id from the client
+      department, // Department _id
       basicSalary,
       housingAllowance,
       transportAllowance,
@@ -227,11 +195,10 @@ export const addEmployee = async (req, res) => {
       kraPIN,
       nssfNumber,
       nhifNumber,
-      password,
-      role,
+      password, // optional plain password from admin
+      role,     // optional; defaults to 'employee'
     } = req.body;
 
-    // Required fields
     if (!name || !email || !employeeId || !phone || !nationalId || !department || !designation) {
       return res.status(400).json({ success: false, error: 'Please provide all required fields' });
     }
@@ -243,51 +210,30 @@ export const addEmployee = async (req, res) => {
     if (!validatePhoneNumber(phone)) {
       return res.status(400).json({ success: false, error: 'Invalid phone number format' });
     }
-
     if (emergencyContactPhone && !validatePhoneNumber(emergencyContactPhone)) {
       return res.status(400).json({ success: false, error: 'Invalid emergency contact phone number format' });
     }
 
-    // Unique checks
-    const existingEmployee = await Employee.findOne({ email });
+    const normalizedEmail = email.toLowerCase().trim();
+
+    const existingEmployee = await Employee.findOne({ email: normalizedEmail });
     if (existingEmployee) {
       return res.status(400).json({ success: false, error: 'Employee with this email already exists' });
     }
-
     const existingEmployeeId = await Employee.findOne({ employeeId });
     if (existingEmployeeId) {
       return res.status(400).json({ success: false, error: 'Employee ID already exists' });
     }
-
     const existingNationalId = await Employee.findOne({ nationalId });
     if (existingNationalId) {
       return res.status(400).json({ success: false, error: 'National ID already registered' });
     }
 
-    // User
-    const existingUser = await User.findOne({ email });
-    let userId;
-    if (existingUser) {
-      userId = existingUser._id;
-    } else {
-      const hashedPassword = await bcrypt.hash(password || 'password123', 10);
-      const newUser = new User({
-        name,
-        email,
-        password: hashedPassword,
-        role: role || 'employee',
-      });
-      await newUser.save();
-      userId = newUser._id;
-    }
-
-    // Department: store STRING name (as per your schema choice)
-    const departmentData = await Department.findById(department).lean();
-    if (!departmentData) {
+    const dep = await Department.findById(department).lean();
+    if (!dep) {
       return res.status(400).json({ success: false, error: 'Invalid department selected' });
     }
 
-    // Salary calc → map to schema keys
     const salaryData = calculateCompleteSalary({
       basicSalary: parseFloat(basicSalary) || 0,
       allowances: {
@@ -298,9 +244,32 @@ export const addEmployee = async (req, res) => {
       },
     });
 
+    // Ensure a User exists (no controller-side hashing)
+    let user = await User.findOne({ email: normalizedEmail }).select('_id name email role');
+
+    let tempPassword = null;
+    if (!user) {
+      const initialPassword =
+        password && password.length >= 6 ? password : 'Temp@' + Math.random().toString(36).slice(2, 8);
+      tempPassword = password && password.length >= 6 ? null : initialPassword;
+
+      user = new User({
+        name: name.trim(),
+        email: normalizedEmail,
+        password: initialPassword, // plain; model pre-save hashes once
+        role: (role || 'employee').toLowerCase(),
+      });
+      await user.save();
+    } else {
+      user.name = name.trim();
+      const desiredRole = (role || user.role || 'employee').toLowerCase();
+      if (user.role !== 'admin') user.role = desiredRole;
+      await user.save();
+    }
+
     const newEmployee = new Employee({
       name,
-      email,
+      email: normalizedEmail,
       employeeId,
       dob: dob || undefined,
       gender: gender || undefined,
@@ -314,7 +283,7 @@ export const addEmployee = async (req, res) => {
         email: emergencyContactEmail || '',
       },
       designation,
-      department: departmentData.dep_name, // keep as string consistently
+      department: dep.dep_name, // or dep._id if your schema stores ObjectId
       salary: {
         basicSalary: Number(salaryData.basicSalary ?? 0),
         allowances: {
@@ -336,20 +305,19 @@ export const addEmployee = async (req, res) => {
       nssfNumber,
       nhifNumber,
       profileImage: req.file ? req.file.filename : undefined,
-      user: userId,
+      user: user._id, // hard-link to User
     });
 
     await newEmployee.save();
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
-      message: 'Employee added successfully with automatic salary calculations',
-      employee: newEmployee,
-      salaryBreakdown: newEmployee.salary,
+      message: 'Employee and User linked successfully. Employee can log in now.',
+      email: normalizedEmail,
+      tempPassword: tempPassword || undefined,
     });
   } catch (error) {
-    console.error('Error adding employee:', error);
-    res.status(500).json({ success: false, error: error.message || 'Failed to add employee' });
+    return res.status(500).json({ success: false, error: error.message || 'Failed to add employee' });
   }
 };
 
@@ -362,28 +330,13 @@ export const getEmployeesByDepartmentStats = async (req, res) => {
 
     const stats = await Employee.aggregate([
       { $match: match },
-      {
-        $group: {
-          _id: { $ifNull: ['$department', 'Unassigned'] },
-          count: { $sum: 1 },
-          // You can aggregate salary here if needed, using the schema keys
-          // totalGross: { $sum: { $ifNull: ['$salary.grossSalary', 0] } },
-          // totalNet: { $sum: { $ifNull: ['$salary.netSalary', 0] } },
-        },
-      },
+      { $group: { _id: { $ifNull: ['$department', 'Unassigned'] }, count: { $sum: 1 } } },
       { $sort: { count: -1 } },
     ]);
 
-    const result = stats.map((s) => ({
-      department: s._id,
-      count: s.count,
-      // totalGross: s.totalGross,
-      // totalNet: s.totalNet,
-    }));
-
+    const result = stats.map((s) => ({ department: s._id, count: s.count }));
     res.json({ success: true, data: result });
   } catch (error) {
-    console.error('getEmployeesByDepartmentStats error:', error);
     res.status(500).json({ success: false, error: 'Failed to load department stats' });
   }
 };
@@ -392,9 +345,7 @@ export const getEmployeesByDepartmentStats = async (req, res) => {
 export const getEmployeesByDepartment = async (req, res) => {
   try {
     const { depName } = req.params;
-    if (!depName) {
-      return res.status(400).json({ success: false, error: 'Department name is required' });
-    }
+    if (!depName) return res.status(400).json({ success: false, error: 'Department name is required' });
 
     const employees = await Employee.find({ department: depName })
       .populate('user', 'name email')
@@ -402,7 +353,6 @@ export const getEmployeesByDepartment = async (req, res) => {
 
     res.json({ success: true, department: depName, count: employees.length, employees });
   } catch (error) {
-    console.error('getEmployeesByDepartment error:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch employees by department' });
   }
 };
@@ -435,7 +385,6 @@ export const updateEmployee = async (req, res) => {
 
     res.json({ success: true, message: 'Employee updated successfully', employee: updatedEmployee });
   } catch (error) {
-    console.error('Error updating employee:', error);
     res.status(500).json({ success: false, error: 'Failed to update employee' });
   }
 };
@@ -446,21 +395,16 @@ export const deleteEmployee = async (req, res) => {
     const { id } = req.params;
 
     const employee = await Employee.findById(id);
-    if (!employee) {
-      return res.status(404).json({ success: false, error: 'Employee not found' });
-    }
+    if (!employee) return res.status(404).json({ success: false, error: 'Employee not found' });
 
     if (employee.profileImage) {
       const imagePath = `./public/uploads/${employee.profileImage}`;
-      if (fs.existsSync(imagePath)) {
-        fs.unlinkSync(imagePath);
-      }
+      if (fs.existsSync(imagePath)) fs.unlinkSync(imagePath);
     }
 
     await Employee.findByIdAndDelete(id);
     res.json({ success: true, message: 'Employee deleted successfully' });
   } catch (error) {
-    console.error('Error deleting employee:', error);
     res.status(500).json({ success: false, error: 'Failed to delete employee' });
   }
 };

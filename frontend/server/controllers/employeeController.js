@@ -168,6 +168,25 @@ export const updateEmployeeSalary = async (req, res) => {
     res.status(500).json({ success: false, error: 'Failed to update salary' });
   }
 };
+// Helper to auto-generate unique sequential employee IDs like EMP001, EMP002...
+
+
+const generateEmployeeCode = async () => {
+  // Find the last created employee sorted by creation date or ID
+  const lastEmployee = await Employee.findOne().sort({ createdAt: -1 }).lean();
+
+  let nextNumber = 1;
+  if (lastEmployee?.employeeId) {
+    // Extract numeric part from last employeeId (e.g., EMP007 → 7)
+    const match = lastEmployee.employeeId.match(/\d+$/);
+    if (match) nextNumber = parseInt(match[0]) + 1;
+  }
+
+  // Pad number with zeros to always have 3 digits
+  const formatted = String(nextNumber).padStart(3, '0');
+  return `EMP${formatted}`;
+};
+
 
 // POST /api/employees/add
 export const addEmployee = async (req, res) => {
@@ -266,11 +285,11 @@ export const addEmployee = async (req, res) => {
       if (user.role !== 'admin') user.role = desiredRole;
       await user.save();
     }
-
+const finalEmployeeId = await generateEmployeeCode();
     const newEmployee = new Employee({
       name,
       email: normalizedEmail,
-      employeeId,
+      employeeId: finalEmployeeId,
       dob: dob || undefined,
       gender: gender || undefined,
       maritalStatus: maritalStatus || undefined,

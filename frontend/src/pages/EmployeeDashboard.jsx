@@ -355,7 +355,7 @@ const EmployeeDashboardHome = () => {
               <div className="bg-gradient-to-br from-green-500 to-emerald-600 w-12 h-12 rounded-lg flex items-center justify-center mb-2.5 mx-auto group-hover:scale-110 transition">
                 <DollarSign className="w-6 h-6 text-white" />
               </div>
-              <p className="text-[13px] font-bold text-center text-slate-800">Salary</p>
+              <p className="text-[13px] font-bold text-center text-slate-800">PayRoll</p>
             </button>
 
             <button

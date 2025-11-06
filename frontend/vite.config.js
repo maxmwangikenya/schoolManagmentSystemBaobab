@@ -8,7 +8,6 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          // Split vendor libraries into separate chunks
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
           'chart-vendor': ['recharts'],
           'ui-vendor': ['react-icons', 'lucide-react', 'react-toastify'],

@@ -13,7 +13,7 @@ import LeaveReportList from './Leavereportlist.jsx';
 import DepartmentLeaveSummary from './Departmentleavesummary.jsx';
 import LeaveStatisticsDashboard from './Leavestaticsdashboard.jsx';
 import SalarySummaryDashboard from './SalarySummaryDashboard.jsx';
-import DepartmentHeadcountChart from './DepartmentHeadcountChart.jsx'; // new chart we discussed
+import DepartmentHeadcountChart from './DepartmentHeadCountChart.jsx'; // new chart we discussed
 
 const ReportList = () => {
   const [activeTab, setActiveTab] = useState('list');

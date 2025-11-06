@@ -16,6 +16,7 @@ import {
   LogOut,
   ClipboardList,
   Shield,
+  BarChart3,
 } from 'lucide-react';
 
 const currencyCode = import.meta.env.VITE_CURRENCY || 'KES';
@@ -201,7 +202,7 @@ const EmployeeDashboardHome = () => {
   return (
     <div className="bg-gradient-to-br from-slate-50 via-indigo-50/30 to-white min-h-screen">
       <div className="p-6 md:p-8 space-y-8">
-        {/* ===================== HEADER (two-column) ===================== */}
+        {/*  HEADER (two-column)  */}
         <div className="relative bg-gradient-to-r from-sky-600 via-cyan-600 to-indigo-600 rounded-2xl md:rounded-3xl shadow-2xl overflow-hidden">
           <div className="absolute inset-0 bg-black/5" />
           <div className="absolute top-0 right-0 w-80 h-80 bg-white/10 rounded-full blur-3xl" />
@@ -291,6 +292,7 @@ const EmployeeDashboardHome = () => {
                 <Settings className="w-4 h-4" />
                 Settings
               </button>
+
               <button
                 onClick={() => {
                   if (window.confirm('Logout now?')) logout();
@@ -303,7 +305,7 @@ const EmployeeDashboardHome = () => {
             </div>
           </div>
         </div>
-        {/* ===================== /HEADER ===================== */}
+        {/* /HEADER  */}
 
         {/* QUICK ACTIONS (just under header) */}
         <div className="bg-white rounded-2xl shadow-xl p-5 border border-slate-200">
@@ -357,6 +359,15 @@ const EmployeeDashboardHome = () => {
               </div>
               <p className="text-[13px] font-bold text-center text-slate-800">PayRoll</p>
             </button>
+                              <button
+      onClick={() => navigate('/employee-dashboard/reports')}
+      className="group bg-gradient-to-br from-indigo-50 to-sky-50 border border-indigo-200 rounded-xl p-4 hover:shadow-lg hover:-translate-y-1 transition"
+    >
+      <div className="bg-gradient-to-br from-indigo-500 to-sky-600 w-12 h-12 rounded-lg flex items-center justify-center mb-2.5 mx-auto group-hover:scale-110 transition">
+        <BarChart3 className="w-6 h-6 text-white" />
+      </div>
+      <p className="text-[13px] font-bold text-center text-slate-800">Reports</p>
+    </button>
 
             <button
               onClick={() => navigate('/employee-dashboard/settings')}

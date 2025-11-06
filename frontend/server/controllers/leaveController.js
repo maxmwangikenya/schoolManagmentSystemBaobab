@@ -3,23 +3,12 @@ import Leave from '../models/Leave.js';
 import Employee from '../models/Employee.js';
 import Department from '../models/Department.js';
 
-/**
- * Normalize an allocation object so we always have the 3 keys.
- * Anything missing becomes 0.
- */
 const normalizeAllocation = (alloc = {}) => ({
   casual: Number(alloc.casual || 0),
   sick: Number(alloc.sick || 0),
   annual: Number(alloc.annual || 0),
 });
 
-/**
- * Get base leave allocation for an employee, without hard-coding numbers.
- * Priority:
- * 1. employee.leaveAllocation / employee.leaveEntitlement (whichever you add to schema)
- * 2. department.leaveAllocation (if your Department schema has it)
- * 3. fallback: all zeros
- */
 const getBaseAllocationForEmployee = async (employee) => {
   // 1) check employee-level
   if (employee?.leaveAllocation) {
@@ -43,7 +32,7 @@ const getBaseAllocationForEmployee = async (employee) => {
 
 /**
  * Count days inclusive
- */
+
 const calculateDays = (startDate, endDate) => {
   const start = new Date(startDate);
   const end = new Date(endDate);

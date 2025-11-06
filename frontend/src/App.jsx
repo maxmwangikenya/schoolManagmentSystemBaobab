@@ -18,6 +18,7 @@ import SettingsPasswordManagement from "../src/components/setting/SettingsPasswo
 import EmployeeProfile from './components/EmployeeDashboard/Profile';
 import EmployeeSalary from '../src/components/salary/EmployeeSalary';
 import ReportList from './components/report/ReportList';
+import EmployeeReports from './components/employees/EmployeeReports';
 
 // Payroll
 import PayrollGenerate from './components/payroll/generatePayroll';
@@ -191,6 +192,13 @@ function App() {
         <PrivateRoutes>
           <RoleBaseRoutes requiredRole={["employee"]}>
             <EmployeePayslipsList />
+          </RoleBaseRoutes>
+        </PrivateRoutes>
+      } />    
+      <Route path="/employee-dashboard/reports" element={
+        <PrivateRoutes>
+          <RoleBaseRoutes requiredRole={["employee"]}>
+            <EmployeeReports />
           </RoleBaseRoutes>
         </PrivateRoutes>
       } />    

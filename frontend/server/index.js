@@ -7,14 +7,15 @@ import fs from 'fs';
 import connectToDatabase from './db/db.js';
 
 // Import routes
-
-import authRouter from './routes/auth.js'; // <-- ADD THIS
+import attendanceRouter from './routes/attendanceRoutes.js'; // ⬅️ NEW
+import authRouter from './routes/auth.js';
 import departmentRouter from './routes/department.js';
 import employeeRouter from './routes/employee.js';
 import salaryRouter from './routes/salary.js';
 import leaveRouter from './routes/leave.js';
 import reportRouter from './routes/report.js';
 import payrollRouter from './routes/payroll.js';
+
 // Connect to database
 connectToDatabase();
 
@@ -61,14 +62,14 @@ app.use((req, res, next) => {
 });
 
 // API Routes
-
-app.use('/api/auth', authRouter);  
+app.use('/api/auth', authRouter);
 app.use('/api/departments', departmentRouter);
 app.use('/api/employees', employeeRouter);
 app.use('/api/salary', salaryRouter);
 app.use('/api/leaves', leaveRouter);
 app.use('/api/reports', reportRouter);
 app.use('/api/payroll', payrollRouter);
+app.use('/api/attendance', attendanceRouter); // ⬅️ NEW
 
 // Health check
 app.get('/', (req, res) => {
@@ -83,7 +84,8 @@ app.get('/', (req, res) => {
       salary: '/api/salary',
       leaves: '/api/leaves',
       reports: '/api/reports',
-      payroll: '/api/payroll'
+      payroll: '/api/payroll',
+      attendance: '/api/attendance' // ⬅️ NEW
     }
   });
 });
@@ -124,7 +126,7 @@ app.use((req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`✅ Server running on http://localhost:${PORT}`);
-  console.log('Auth & Password routes registered');
+  console.log('Auth, Attendance & other routes registered');
 });
 
 process.on('unhandledRejection', () => process.exit(1));

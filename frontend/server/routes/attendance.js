@@ -1,5 +1,6 @@
 import express from 'express';
 import { verifyUser } from '../middleware/authMiddleware.js';
+import { ensureAllowedIp } from '../../src/utils/attendanceIpCheck.jsx';
 import {
   clockIn,
   clockOut,

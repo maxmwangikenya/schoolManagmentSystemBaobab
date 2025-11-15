@@ -7,7 +7,7 @@ import fs from 'fs';
 import connectToDatabase from './db/db.js';
 
 // Import routes
-import attendanceRouter from './routes/attendanceRoutes.js'; // ⬅️ NEW
+import attendanceRouter from './routes/attendance.js'; // ⬅️ NEW
 import authRouter from './routes/auth.js';
 import departmentRouter from './routes/department.js';
 import employeeRouter from './routes/employee.js';

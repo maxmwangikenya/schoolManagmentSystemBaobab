@@ -17,15 +17,31 @@ import {
   ClipboardList,
   Shield,
   BarChart3,
+  Clock,
+  Wifi,
+  MapPin,
+  AlertCircle,
+  CheckCircle,
+  XCircle,
 } from 'lucide-react';
 
 const currencyCode = import.meta.env.VITE_CURRENCY || 'KES';
 const fmtMoney = (n) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: currencyCode, maximumFractionDigits: 2 }).format(Number(n || 0));
+  new Intl.NumberFormat('en-US', { style: 'currency', currency: currencyCode, maximumFractionDigits: 2 }).format(
+    Number(n || 0)
+  );
 const fmtDate = (d) =>
   d ? new Date(d).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
 
-const DashboardCard = ({ title, value, subtitle, gradient = 'from-slate-50 to-slate-100', border = 'border-slate-200', Icon, onClick }) => (
+const DashboardCard = ({
+  title,
+  value,
+  subtitle,
+  gradient = 'from-slate-50 to-slate-100',
+  border = 'border-slate-200',
+  Icon,
+  onClick,
+}) => (
   <button
     type="button"
     onClick={onClick}
@@ -49,8 +65,16 @@ const StatusBadge = ({ status }) => {
     rejected: 'bg-rose-50 text-rose-700 ring-1 ring-rose-200',
   };
   const cls = map[status?.toLowerCase?.()] || 'bg-slate-50 text-slate-600 ring-1 ring-slate-200';
-  return <span className={`px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${cls}`}>{status || 'unknown'}</span>;
+  return (
+    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${cls}`}>{status || 'unknown'}</span>
+  );
 };
+
+// 🔹 Allowed IPs from frontend .env (not hard-coded)
+const ALLOWED_IPS = (import.meta.env.VITE_ALLOWED_ATTENDANCE_IPS || '')
+  .split(',')
+  .map((ip) => ip.trim())
+  .filter(Boolean);
 
 const EmployeeDashboardHome = () => {
   const navigate = useNavigate();
@@ -70,6 +94,16 @@ const EmployeeDashboardHome = () => {
   const [leaves, setLeaves] = useState([]);
 
   const [now, setNow] = useState(new Date()); // live time
+
+  // 🔹 Attendance state
+  const [attLoading, setAttLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [todayAttendance, setTodayAttendance] = useState(null);
+  const [isClockedIn, setIsClockedIn] = useState(false);
+  const [clientIp, setClientIp] = useState('');
+  const [ipMatch, setIpMatch] = useState(false); // default false (strict)
+  const [attError, setAttError] = useState('');
+  const [attSuccess, setAttSuccess] = useState('');
 
   const token = localStorage.getItem('token');
 
@@ -99,16 +133,78 @@ const EmployeeDashboardHome = () => {
       setLeaves(histRes.data?.leaves || []);
       setHistError(null);
     } catch (err) {
-      if (err?.config?.url?.includes('/api/employees/')) setEmpError(err?.response?.data?.error || 'Failed to load employee');
-      if (err?.config?.url?.includes('/api/leaves/balance')) setBalError(err?.response?.data?.error || 'Failed to load leave balance');
-      if (err?.config?.url?.includes('/api/leaves/employee')) setHistError(err?.response?.data?.error || 'Failed to load leave history');
+      if (err?.config?.url?.includes('/api/employees/'))
+        setEmpError(err?.response?.data?.error || 'Failed to load employee');
+      if (err?.config?.url?.includes('/api/leaves/balance'))
+        setBalError(err?.response?.data?.error || 'Failed to load leave balance');
+      if (err?.config?.url?.includes('/api/leaves/employee'))
+        setHistError(err?.response?.data?.error || 'Failed to load leave history');
     } finally {
       setLoading(false);
     }
   };
 
+  // 🔹 Get client IP and compare with allowed IPs
+  const fetchClientIp = async () => {
+    try {
+      const res = await fetch('https://api.ipify.org?format=json');
+      const data = await res.json();
+      const ip = data.ip;
+      setClientIp(ip);
+
+      if (ALLOWED_IPS.length === 0) {
+        // ⚠ No allowed IPs configured → treat as NOT allowed
+        setIpMatch(false);
+      } else {
+        setIpMatch(ALLOWED_IPS.includes(ip));
+      }
+    } catch (err) {
+      console.error('Failed to fetch client IP:', err);
+      setClientIp('Unknown');
+      // On error, also treat as NOT allowed
+      setIpMatch(false);
+    }
+  };
+
+  // 🔹 Get today's attendance
+  const fetchTodayAttendance = async () => {
+    try {
+      setAttLoading(true);
+      setAttError('');
+      const headers = { Authorization: `Bearer ${token}` };
+      const res = await axios.get(`${API_BASE_URL}/api/attendance/me/today`, { headers });
+      const data = res.data;
+
+      if (!data.success) {
+        setTodayAttendance(null);
+        setIsClockedIn(false);
+        return;
+      }
+
+      const att = data.attendance;
+      setTodayAttendance(att || null);
+
+      if (att && att.clockInTime && !att.clockOutTime) {
+        setIsClockedIn(true);
+      } else {
+        setIsClockedIn(false);
+      }
+    } catch (err) {
+      console.error('Error fetching attendance:', err);
+      setAttError('Failed to load today attendance');
+      setTodayAttendance(null);
+      setIsClockedIn(false);
+    } finally {
+      setAttLoading(false);
+    }
+  };
+
   useEffect(() => {
-    if (employeeId && API_BASE_URL && token) fetchAll();
+    if (employeeId && API_BASE_URL && token) {
+      fetchAll();
+      fetchClientIp();
+      fetchTodayAttendance();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [employeeId]);
 
@@ -160,7 +256,9 @@ const EmployeeDashboardHome = () => {
 
   const avatarSrc = employee?.profileImage
     ? `${API_BASE_URL}/public/uploads/${employee.profileImage}`
-    : `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'Employee')}&background=0ea5e9&color=fff&size=200`;
+    : `https://ui-avatars.com/api/?name=${encodeURIComponent(
+        user?.name || 'Employee'
+      )}&background=0ea5e9&color=fff&size=200`;
 
   const role = (user?.role || 'employee').toLowerCase();
   const roleChip =
@@ -171,6 +269,47 @@ const EmployeeDashboardHome = () => {
   const handleLogout = () => {
     if (window.confirm('Logout now?')) logout();
   };
+
+  // 🔹 Clock in/out handler with IP enforcement
+  const handleAttendanceClick = async () => {
+    setAttError('');
+    setAttSuccess('');
+
+    // ⛔ HARD BLOCK: do NOT allow when IP doesn't match
+    if (!ipMatch) {
+      setAttError('Your current IP is not allowed to mark attendance.');
+      return;
+    }
+
+    try {
+      setActionLoading(true);
+      const headers = { Authorization: `Bearer ${token}` };
+      const endpoint = isClockedIn ? 'clock-out' : 'clock-in';
+
+      const res = await axios.post(`${API_BASE_URL}/api/attendance/${endpoint}`, {}, { headers });
+      const data = res.data;
+
+      if (!data.success) {
+        setAttError(data.error || 'Failed to update attendance');
+      } else {
+        setAttSuccess(data.message || 'Attendance updated');
+        await fetchTodayAttendance();
+      }
+    } catch (err) {
+      console.error('Error updating attendance:', err);
+      setAttError('Failed to update attendance');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const buttonLabel = isClockedIn ? 'Clock Out' : 'Clock In';
+  const buttonIcon = isClockedIn ? <XCircle className="w-5 h-5" /> : <CheckCircle className="w-5 h-5" />;
+
+  // 🟥 / 🟩 button gradient based on IP match
+  const buttonColorClass = ipMatch
+    ? 'from-green-600 to-green-700 hover:from-green-700 hover:to-green-800'
+    : 'from-red-600 to-red-700 hover:from-red-700 hover:to-red-800';
 
   if (loading) {
     return (
@@ -228,7 +367,9 @@ const EmployeeDashboardHome = () => {
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-base md:text-lg font-semibold">{user?.name || 'Employee'}</span>
                     {/* Role chip */}
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold border ${roleChip}`}>
+                    <span
+                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold border ${roleChip}`}
+                    >
                       <Shield className="w-3.5 h-3.5" />
                       {role === 'admin' ? 'Admin' : 'Employee'}
                     </span>
@@ -258,10 +399,8 @@ const EmployeeDashboardHome = () => {
                     <Glyph />
                     <div className="text-xl md:text-2xl font-bold">{greeting}</div>
                     <div className="opacity-80">•</div>
-                    {/* time larger per your request */}
                     <div className="tabular-nums text-2xl md:text-3xl font-extrabold">{timeStr}</div>
                   </div>
-                  {/* name on its own line under time (as in your example) */}
                   <div className="text-white/90 mt-1 text-sm md:text-base font-semibold">
                     {user?.name || 'Employee'}
                   </div>
@@ -269,7 +408,7 @@ const EmployeeDashboardHome = () => {
               </div>
             </div>
 
-            {/* action row like: My Leaves • My Payroll • Settings • Logout */}
+            {/* Header actions */}
             <div className="flex flex-wrap items-center gap-2.5 mt-5">
               <button
                 onClick={() => navigate(`/employee-dashboard/leaves/${user?.employeeId || user?._id}`)}
@@ -294,9 +433,7 @@ const EmployeeDashboardHome = () => {
               </button>
 
               <button
-                onClick={() => {
-                  if (window.confirm('Logout now?')) logout();
-                }}
+                onClick={handleLogout}
                 className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-rose-500/90 text-white font-semibold rounded-lg border border-rose-400/40 hover:bg-rose-600 transition text-[13px]"
               >
                 <LogOut className="w-4 h-4" />
@@ -307,7 +444,7 @@ const EmployeeDashboardHome = () => {
         </div>
         {/* /HEADER  */}
 
-        {/* QUICK ACTIONS (just under header) */}
+        {/* QUICK ACTIONS */}
         <div className="bg-white rounded-2xl shadow-xl p-5 border border-slate-200">
           <div className="flex items-center gap-3 mb-5">
             <div className="bg-gradient-to-r from-cyan-400 to-blue-500 p-2.5 rounded-xl shadow-lg">
@@ -359,24 +496,15 @@ const EmployeeDashboardHome = () => {
               </div>
               <p className="text-[13px] font-bold text-center text-slate-800">PayRoll</p>
             </button>
-                              <button
-      onClick={() => navigate('/employee-dashboard/reports')}
-      className="group bg-gradient-to-br from-indigo-50 to-sky-50 border border-indigo-200 rounded-xl p-4 hover:shadow-lg hover:-translate-y-1 transition"
-    >
-      <div className="bg-gradient-to-br from-indigo-500 to-sky-600 w-12 h-12 rounded-lg flex items-center justify-center mb-2.5 mx-auto group-hover:scale-110 transition">
-        <BarChart3 className="w-6 h-6 text-white" />
-      </div>
-      <p className="text-[13px] font-bold text-center text-slate-800">Reports</p>
-    </button>
 
             <button
-              onClick={() => navigate('/employee-dashboard/settings')}
-              className="group bg-gradient-to-br from-slate-50 to-gray-50 border border-gray-200 rounded-xl p-4 hover:shadow-lg hover:-translate-y-1 transition"
+              onClick={() => navigate('/employee-dashboard/reports')}
+              className="group bg-gradient-to-br from-indigo-50 to-sky-50 border border-indigo-200 rounded-xl p-4 hover:shadow-lg hover:-translate-y-1 transition"
             >
-              <div className="bg-gradient-to-br from-gray-500 to-slate-600 w-12 h-12 rounded-lg flex items-center justify-center mb-2.5 mx-auto group-hover:scale-110 transition">
-                <Settings className="w-6 h-6 text-white" />
+              <div className="bg-gradient-to-br from-indigo-500 to-sky-600 w-12 h-12 rounded-lg flex items-center justify-center mb-2.5 mx-auto group-hover:scale-110 transition">
+                <BarChart3 className="w-6 h-6 text-white" />
               </div>
-              <p className="text-[13px] font-bold text-center text-slate-800">Settings</p>
+              <p className="text-[13px] font-bold text-center text-slate-800">Reports</p>
             </button>
 
             <button
@@ -391,6 +519,150 @@ const EmployeeDashboardHome = () => {
           </div>
         </div>
 
+        {/* 🔹 TODAY'S ATTENDANCE CARD WITH CLOCK-IN BUTTON */}
+        <div className="bg-white rounded-2xl shadow-xl p-5 border border-slate-200">
+          <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
+            <div className="flex items-center gap-3">
+              <div className="bg-gradient-to-r from-emerald-400 to-green-500 p-2.5 rounded-xl shadow-lg">
+                <Clock className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Today&apos;s Attendance</h3>
+                <p className="text-slate-600 text-xs">Mark your presence from an authorized network</p>
+              </div>
+            </div>
+
+            <div className="text-right">
+              <p className="text-xs text-slate-500">Status</p>
+              <p className="text-sm font-semibold text-slate-900">
+                {attLoading ? 'Checking…' : isClockedIn ? 'Clocked In' : 'Not Clocked In'}
+              </p>
+              <p className="text-xs text-slate-500 mt-1">
+                Total hours today:{' '}
+                <span className="font-semibold text-indigo-600">
+                  {todayAttendance?.totalHours?.toFixed?.(2) || '0.00'}
+                </span>
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 bg-slate-50 rounded-xl p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-full bg-green-50">
+                <Clock className="w-5 h-5 text-green-600" />
+              </div>
+              <div>
+                <p className="text-xs font-medium text-slate-500">Clock In</p>
+                <p className="text-sm font-semibold text-slate-900">
+                  {todayAttendance?.clockInTime
+                    ? new Date(todayAttendance.clockInTime).toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })
+                    : '—'}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-full bg-red-50">
+                <Clock className="w-5 h-5 text-red-600" />
+              </div>
+              <div>
+                <p className="text-xs font-medium text-slate-500">Clock Out</p>
+                <p className="text-sm font-semibold text-slate-900">
+                  {todayAttendance?.clockOutTime
+                    ? new Date(todayAttendance.clockOutTime).toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })
+                    : '—'}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-1 text-sm">
+              <div className="flex items-center gap-2 text-slate-700">
+                <Wifi className="w-4 h-4 text-sky-600" />
+                <span className="font-semibold">Your IP:</span>
+                <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-800 text-xs">
+                  {clientIp || 'Unknown'}
+                </span>
+              </div>
+              {ALLOWED_IPS.length > 0 && (
+                <div className="flex items-start gap-2 text-slate-700">
+                  <MapPin className="w-4 h-4 text-indigo-500 mt-0.5" />
+                  <span className="text-xs">
+                    <span className="font-semibold">Allowed IP(s): </span>
+                    {ALLOWED_IPS.join(', ')}
+                  </span>
+                </div>
+              )}
+              <div className="mt-1">
+                <span
+                  className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${
+                    ipMatch
+                      ? 'bg-green-50 text-green-700 border border-green-200'
+                      : 'bg-red-50 text-red-700 border border-red-200'
+                  }`}
+                >
+                  {ipMatch ? (
+                    <>
+                      <CheckCircle className="w-4 h-4" />
+                      IP Verified
+                    </>
+                  ) : (
+                    <>
+                      <AlertCircle className="w-4 h-4" />
+                      IP Not Allowed
+                    </>
+                  )}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {attError && (
+            <div className="mb-3 flex items-center gap-2 text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              <AlertCircle className="w-4 h-4" />
+              <span>{attError}</span>
+            </div>
+          )}
+
+          {attSuccess && (
+            <div className="mb-3 flex items-center gap-2 text-xs text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+              <CheckCircle className="w-4 h-4" />
+              <span>{attSuccess}</span>
+            </div>
+          )}
+
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <button
+              onClick={handleAttendanceClick}
+              disabled={actionLoading || attLoading}
+              className={`inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-white font-semibold shadow-lg transition-all bg-gradient-to-r ${buttonColorClass} disabled:opacity-60 disabled:cursor-not-allowed`}
+            >
+              {actionLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  {buttonIcon}
+                  {buttonLabel}
+                </>
+              )}
+            </button>
+
+            <p className="text-xs text-slate-500 max-w-md">
+              Your attendance is recorded with time and IP address. The button is{' '}
+              <span className="font-semibold text-green-600">green</span> when you are on an allowed IP, and{' '}
+              <span className="font-semibold text-red-600">red</span> when not.
+            </p>
+          </div>
+        </div>
+
         {/* LEAVE / PAY METRICS */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
           <DashboardCard
@@ -398,7 +670,9 @@ const EmployeeDashboardHome = () => {
             value={`${totalRemaining} day(s)`}
             subtitle={
               balance
-                ? `Casual ${balance.remainingLeaves?.casual || 0} • Sick ${balance.remainingLeaves?.sick || 0} • Annual ${balance.remainingLeaves?.annual || 0}`
+                ? `Casual ${balance.remainingLeaves?.casual || 0} • Sick ${balance.remainingLeaves?.sick || 0} • Annual ${
+                    balance.remainingLeaves?.annual || 0
+                  }`
                 : balError || '—'
             }
             gradient="from-emerald-50 to-emerald-100"

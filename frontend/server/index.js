@@ -69,8 +69,7 @@ app.use('/api/salary', salaryRouter);
 app.use('/api/leaves', leaveRouter);
 app.use('/api/reports', reportRouter);
 app.use('/api/payroll', payrollRouter);
-app.use('/api/attendance', attendanceRouter); // ⬅️ NEW
-
+app.use('/api/attendance', attendanceRouter); 
 // Health check
 app.get('/', (req, res) => {
   res.json({

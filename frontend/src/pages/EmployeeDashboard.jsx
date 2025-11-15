@@ -408,7 +408,7 @@ const EmployeeDashboardHome = () => {
               </div>
             </div>
 
-            {/* Header actions */}
+            {/* Header actions (no attendance here now) */}
             <div className="flex flex-wrap items-center gap-2.5 mt-5">
               <button
                 onClick={() => navigate(`/employee-dashboard/leaves/${user?.employeeId || user?._id}`)}
@@ -417,6 +417,7 @@ const EmployeeDashboardHome = () => {
                 <Calendar className="w-4 h-4" />
                 My Leaves
               </button>
+
               <button
                 onClick={() => navigate(`/employee-dashboard/salary/${employeeId}`)}
                 className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-white/15 text-white font-semibold rounded-lg border border-white/30 hover:bg-white/25 transition text-[13px]"
@@ -424,6 +425,7 @@ const EmployeeDashboardHome = () => {
                 <DollarSign className="w-4 h-4" />
                 My Payroll
               </button>
+
               <button
                 onClick={() => navigate('/employee-dashboard/settings')}
                 className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-white/15 text-white font-semibold rounded-lg border border-white/30 hover:bg-white/25 transition text-[13px]"
@@ -487,6 +489,17 @@ const EmployeeDashboardHome = () => {
               <p className="text-[13px] font-bold text-center text-slate-800">Leaves</p>
             </button>
 
+            {/* ✅ My Attendance now in Quick Actions */}
+            <button
+              onClick={() => navigate(`/employee-dashboard/attendance/${employeeId}`)}
+              className="group bg-gradient-to-br from-emerald-50 to-green-50 border border-emerald-200 rounded-xl p-4 hover:shadow-lg hover:-translate-y-1 transition"
+            >
+              <div className="bg-gradient-to-br from-emerald-500 to-green-600 w-12 h-12 rounded-lg flex items-center justify-center mb-2.5 mx-auto group-hover:scale-110 transition">
+                <Clock className="w-6 h-6 text-white" />
+              </div>
+              <p className="text-[13px] font-bold text-center text-slate-800">My Attendance</p>
+            </button>
+
             <button
               onClick={() => navigate(`/employee-dashboard/salary/${employeeId}`)}
               className="group bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 hover:shadow-lg hover:-translate-y-1 transition"
@@ -501,7 +514,7 @@ const EmployeeDashboardHome = () => {
               onClick={() => navigate('/employee-dashboard/reports')}
               className="group bg-gradient-to-br from-indigo-50 to-sky-50 border border-indigo-200 rounded-xl p-4 hover:shadow-lg hover:-translate-y-1 transition"
             >
-              <div className="bg-gradient-to-br from-indigo-500 to-sky-600 w-12 h-12 rounded-lg flex items-center justify-center mb-2.5 mx-auto group-hover:scale-110 transition">
+              <div className="bg-gradient-to-br from-indigo-500 to-sky-600 w-12 h-12 rounded-lg flex items-center justify-center mb-2.5 mx_auto group-hover:scale-110 transition">
                 <BarChart3 className="w-6 h-6 text-white" />
               </div>
               <p className="text-[13px] font-bold text-center text-slate-800">Reports</p>
